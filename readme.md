@@ -21,4 +21,4 @@ Result(Tautology or not) and Truth tree
 3. Once formula is entered, the result whether the input is a tautology or not along with the truth tree.
 
 Language used: Javascript and HTML
-Tools used: Visual Studio Code, Material UI
+Tools used: Visual Studio Code, Material UI.
