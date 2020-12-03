@@ -1,21 +1,20 @@
-Intelligent Systems (ITCS 6150) Project
+# Intelligent Systems (ITCS 6150) Project
 
-Team:
-
+### Team:
 1. Nivedita Veeramanigandan
 2. Gokul Mani
 3. Balasundaram Avudai Nayagam
 
-Problem Description:
+### Problem Description:
 Implement the Verification Method(RS-method) to determine a given formula in the propositional calculus is a tautology.
 
-Input:
+### Input:
 Formula in propositional calculus
 
-Output:
+### Output:
 Result(Tautology or not) and Truth tree
 
-Steps to open the project:
+### Steps to open the project:
 
 1. Open the Home.html file in the browser
 2. Enter the formula inside the textbox given in the UI
