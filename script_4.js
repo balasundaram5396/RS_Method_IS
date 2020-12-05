@@ -1,6 +1,4 @@
 function ModelFinder(initFormulas, parser, accessibilityConstraints, s5){
-    log("*** creating ModelFinder");
-
     this.parser = parser;
     this.s5 = s5;
     
@@ -30,18 +28,15 @@ ModelFinder.prototype.getClauses = function(formulas) {
     var res = [];
     for (var i=0; i<formulas.length; i++) {
         var formula = formulas[i]; 
-        log('getting clauses from '+formula);
         var clauses = this.parser.clausalNormalForm(formula);
         res = res.concatNoDuplicates(clauses);
     }
-    log('all clauses: '+res);
     res = this.simplifyClauses(res);
-    log('simplified clauses: '+res);
     return res;
 }
 
 ModelFinder.prototype.simplifyClauses = function(clauseList) {
-    var bm = clauseList.filter(function(clause) {
+    var mb = clauseList.filter(function(clause) {
         for (var i=0; i<clause.length; i++) {
             for (var j=i+1; j<clause.length; j++) {
                 if (clause[i].sub && clause[i].sub.string == clause[j].string ||
@@ -52,22 +47,22 @@ ModelFinder.prototype.simplifyClauses = function(clauseList) {
         }
         return true;
     });
-    var bm = bm.map(function(clause) {
+    var mb = mb.map(function(clause) {
         return clause.removeDuplicates();
     });
-    bm.sort(function(a,b){ return a.length > b.length; });
-    if (bm.length > 5000) return bm;
-    bm2 = bm.copy();
+    mb.sort(function(a,b){ return a.length > b.length; });
+    if (mb.length > 5000) return mb;
+    mb2 = mb.copy();
     var literals_to_clauses = {};
-    for (var i=0; i<bm.length; i++) {
-        for (var k=0; k<bm[i].length; k++) {
-            var lit = bm[i][k].string;
-            if (!literals_to_clauses[lit]) literals_to_clauses[lit] = [bm[i]];
-            else literals_to_clauses[lit].push(bm[i]);
+    for (var i=0; i<mb.length; i++) {
+        for (var k=0; k<mb[i].length; k++) {
+            var lit = mb[i][k].string;
+            if (!literals_to_clauses[lit]) literals_to_clauses[lit] = [mb[i]];
+            else literals_to_clauses[lit].push(mb[i]);
         }
     }
-    for (var i=0; i<bm.length; i++) {
-        var clause = bm[i];
+    for (var i=0; i<mb.length; i++) {
+        var clause = mb[i];
         var lit = clause[0].string;
         var supersets = literals_to_clauses[lit];
         for (var k=1; k<clause.length && supersets.length; k++) {
@@ -75,70 +70,18 @@ ModelFinder.prototype.simplifyClauses = function(clauseList) {
             supersets.intersect(literals_to_clauses[lit]);
         }
         for (var k=0; k<supersets.length; k++) {
-            if (bm.indexOf(supersets[k]) > bm.indexOf(clause)) {
-                bm2.remove(supersets[k]);
+            if (mb.indexOf(supersets[k]) > mb.indexOf(clause)) {
+                mb2.remove(supersets[k]);
             }
         }
     }
-    return bm2;
+    return mb2;
 }
 
-ModelFinder.prototype.nextStep = function() {
 
-    if (this.model.clauses.length == 0) return true;
-    var literal = this.model.clauses[0][0];
-    log("** modelfinder: "+this.model.clauses);
-    log(this.model.curIntToString());
-    if (!literal) {
-        this.backtrack();
-        return false;
-    }
-    log("trying to satisfy "+literal);
-    if (!this.model.termValues) {
-        this.model.initTermValues(literal);
-    }
-    else {
-        if (!this.model.iterateTermValues()) {
-            log("no more term interpretations to try: giving up");
-            this.model.clauses[0].shift();
-            this.model.termValues = null;
-            return false;
-        }
-    }
-    
-    while (true) {
-        var atom = literal.sub || literal;
-        var nterms = this.model.reduceTerms(atom.terms);
-        var redAtom = atom.predicate+nterms.toString();
-        if (this.model.curInt[redAtom] === (atom != literal)) {
-            log("literal is false on present term interpretation");
-            if (!this.model.iterateTermValues()) {
-                log("no more term interpretations to try: giving up");
-                this.model.clauses[0].shift();
-                this.model.termValues = null;
-                return false;
-            }
-        }
-        else {
-            this.alternativeModels.push(this.model.copy());
-            if (this.model.curInt[redAtom] === undefined) {
-                log('setting value for '+redAtom+' to '+(atom==literal));
-                this.model.curInt[redAtom] = (atom==literal);
-            }
-            log("literal is satisfied: "+redAtom+" -> "+this.model.curInt[redAtom]);
-            this.model.interpretation = this.model.curInt;
-            this.model.termValues = null;
-            this.model.clauses.shift();
-            this.model.simplifyRemainingClauses();
-            return this.model.clauses.length == 0;
-        }
-    }
-}
 
 ModelFinder.prototype.backtrack = function() {
-    log("backtracking");
     if (this.alternativeModels.length == 0) {
-        log("no more models to backtrack; initializing larger model");
         var WorldsNum = this.model.worlds.length;
         var IndividualsNum = this.model.domain.length;
         if (WorldsNum && this.parser.isProp) {
@@ -167,7 +110,49 @@ ModelFinder.prototype.backtrack = function() {
         }
     }
 }
+ModelFinder.prototype.nextStep = function() {
 
+    if (this.model.clauses.length == 0) return true;
+    var literal = this.model.clauses[0][0];
+    if (!literal) {
+        this.backtrack();
+        return false;
+    }
+    if (!this.model.termValues) {
+        this.model.initTermValues(literal);
+    }
+    else {
+        if (!this.model.iterateTermValues()) {
+            this.model.clauses[0].shift();
+            this.model.termValues = null;
+            return false;
+        }
+    }
+    
+    while (true) {
+        var atom = literal.sub || literal;
+        var nterms = this.model.reduceTerms(atom.terms);
+        var atomRed = atom.predicate+nterms.toString();
+        if (this.model.curInt[atomRed] === (atom != literal)) {
+            if (!this.model.iterateTermValues()) {
+                this.model.clauses[0].shift();
+                this.model.termValues = null;
+                return false;
+            }
+        }
+        else {
+            this.alternativeModels.push(this.model.copy());
+            if (this.model.curInt[atomRed] === undefined) {
+                this.model.curInt[atomRed] = (atom==literal);
+            }
+            this.model.interpretation = this.model.curInt;
+            this.model.termValues = null;
+            this.model.clauses.shift();
+            this.model.simplifyRemainingClauses();
+            return this.model.clauses.length == 0;
+        }
+    }
+}
 
 function Model(modelfinder, IndividualsNum, WorldsNum) {
 
@@ -180,11 +165,9 @@ function Model(modelfinder, IndividualsNum, WorldsNum) {
     this.domain = Array.getArrayOfNumbers(IndividualsNum);
     this.worlds = Array.getArrayOfNumbers(WorldsNum);
     this.isModal = WorldsNum > 0;
-    log('model domain '+this.domain+', worlds '+this.worlds);
-
     this.interpretation = {}; 
 
-    this.clauses = this.getDomainClauses();
+    this.clauses = this.getDomaiclauseNs();
     
     this.termValues = null;
 
@@ -193,7 +176,6 @@ function Model(modelfinder, IndividualsNum, WorldsNum) {
 
 Model.prototype.initTermValues = function(literal) {
 
-    log("initializing termValues");
     
     var atom = literal.sub || literal;
     var termIsOld = {};
@@ -242,17 +224,9 @@ Model.prototype.initTermValues = function(literal) {
     }
 
     this.termValues = terms;
-    log(this.termValues);
 }
 
-Model.prototype.reduceArguments = function(term) {
-    if (term.isArray) {
-        var nterm = this.reduceTerms(term, 1);
-        nterm.unshift(term[0]);
-        return nterm;
-    }
-    return term;
-}
+
 
 Model.prototype.reduceTerms = function(terms, startIndex) {
     var res = [];
@@ -284,7 +258,6 @@ Model.prototype.reduceTerms = function(terms, startIndex) {
 }
 
 Model.prototype.iterateTermValues = function() {
-    log("trying to iterate termValues");
     for (var i=this.termValues.length-1; i>=0; i--) {
         var tv = this.termValues[i];
         if (tv[3] === null || tv[3] == tv[2]) {
@@ -293,7 +266,6 @@ Model.prototype.iterateTermValues = function() {
         tv[3]++;
         var redTerm = this.reduceArguments(tv[0]).toString();
         this.curInt[redTerm] = tv[3];
-        log('set '+redTerm+' to '+tv[3]);
         for (var j=i+1; j<this.termValues.length; j++) {
             var redTerm = this.reduceArguments(this.termValues[j][0]).toString();
             if (this.curInt[redTerm] === undefined) {
@@ -304,27 +276,22 @@ Model.prototype.iterateTermValues = function() {
                 this.termValues[j][3] = null;
             }
         }
-        log(this.termValues);
         return true;
     }
     return false;
 }
-
-Model.prototype.satisfy = function(literal) {
-    var atom = literal.sub || literal;
-    this.curInt = this.interpretation;
-    var nterms = this.reduceTerms(atom.terms);
-    var redAtom = atom.predicate+nterms.toString();
-    if (redAtom in this.curInt && thic.curInt[redAtom] != (atom==literal)) {
-        return false;
+Model.prototype.reduceArguments = function(term) {
+    if (term.isArray) {
+        var nterm = this.reduceTerms(term, 1);
+        nterm.unshift(term[0]);
+        return nterm;
     }
-    this.interpretation[redAtom] = (atom==literal);
-    return true;
+    return term;
 }
 
-Model.prototype.getDomainClauses = function() {
+
+Model.prototype.getDomaiclauseNs = function() {
     res = [];
-    log('creating clauses for current domain(s)');
     for (var c=0; c<this.modelfinder.clauses.length; c++) {
         var clause = this.modelfinder.clauses[c];
         var variables = [];
@@ -338,19 +305,17 @@ Model.prototype.getDomainClauses = function() {
         var interpretations = this.getVariableAssignments(variables);
         for (var i=0; i<interpretations.length; i++) {
             var interpretation = interpretations[i];
-            var nclause = clause.map(function(formula) {
+            var clauseN = clause.map(function(formula) {
                 var nformula = formula;
                 for (var i=0; i<variables.length; i++) {
                     nformula = nformula.substitute(variables[i], interpretation[i]);
                 }
                 return nformula;
             });
-            res.push(nclause);
+            res.push(clauseN);
         }
     }
-    log('           clauses: '+res);
     res = this.modelfinder.simplifyClauses(res);
-    log('simplified clauses: '+res);
     return res;
 }
 
@@ -368,50 +333,48 @@ Model.prototype.getVariableAssignments = function(variables) {
     }
     return res;
 }
-
-Model.iterateTuple = function(tuple, maxValues) {
-    for (var i=tuple.length-1; i>=0; i--) {
-        if (tuple[i] < maxValues[i]) {
-            tuple[i]++;
-            return true;
-        }
-        tuple[i] = 0;
+Model.prototype.satisfy = function(literal) {
+    var atom = literal.sub || literal;
+    this.curInt = this.interpretation;
+    var nterms = this.reduceTerms(atom.terms);
+    var atomRed = atom.predicate+nterms.toString();
+    if (atomRed in this.curInt && thic.curInt[atomRed] != (atom==literal)) {
+        return false;
     }
-    return false;
+    this.interpretation[atomRed] = (atom==literal);
+    return true;
 }
 
+
 Model.prototype.simplifyRemainingClauses = function() {
-    log("simplifying remaining clauses");
-    log(this.clauses);
     
-    var nclauses = [];
+    var clauseNs = [];
     CLAUSELOOP:
     for (var i=0; i<this.clauses.length; i++) {
-        var nclause = [];
+        var clauseN = [];
         for (var j=0; j<this.clauses[i].length; j++) {
             var literal = this.clauses[i][j];
             var atom = literal.sub || literal;
             var nterms = this.reduceTerms(atom.terms);
-            var redAtomStr = atom.predicate+nterms.toString();
-            if (redAtomStr in this.curInt) {
-                if (this.curInt[redAtomStr] == (atom==literal)) {
+            var atomRedStr = atom.predicate+nterms.toString();
+            if (atomRedStr in this.curInt) {
+                if (this.curInt[atomRedStr] == (atom==literal)) {
                     continue CLAUSELOOP;
                 }
                 else { 
                     continue;
                 }
             }
-            var redAtom = new AtomicFormula(atom.predicate, nterms);
-            if (atom==literal) nclause.push(redAtom);
-            else nclause.push(new NegatedFormula(redAtom));
+            var atomRed = new AtomicFormula(atom.predicate, nterms);
+            if (atom==literal) clauseN.push(atomRed);
+            else clauseN.push(new NegatedFormula(atomRed));
         }
-        nclauses.push(nclause);
+        clauseNs.push(clauseN);
     }
-    nclauses.sort(function(a,b) {
+    clauseNs.sort(function(a,b) {
         return a.length > b.length;
     });
-    log(nclauses);
-    this.clauses = nclauses;
+    this.clauses = clauseNs;
 }
 
 Model.prototype.copy = function() {
@@ -426,7 +389,16 @@ Model.prototype.copy = function() {
     nmodel.clauses = this.clauses.copy();
     return nmodel;
 }
-
+Model.iterateTuple = function(tuple, maxValues) {
+    for (var i=tuple.length-1; i>=0; i--) {
+        if (tuple[i] < maxValues[i]) {
+            tuple[i]++;
+            return true;
+        }
+        tuple[i] = 0;
+    }
+    return false;
+}
 Model.prototype.toHTML = function() {
     var str = "<table>";
     if (this.parser.isModal) {
@@ -544,9 +516,6 @@ Model.prototype.getExtensions = function() {
     }
     return result;
 }
-Model.prototype.toString = function() {
-    return this.toHTML().replace(/<.+?>/g, '');
-}
 Model.prototype.curIntToString = function() {
     var res = '';
     var keys = Object.keys(this.curInt);
@@ -554,4 +523,7 @@ Model.prototype.curIntToString = function() {
         res += keys[i]+': '+this.curInt[keys[i]]+'\n';
     }
     return res;
+}
+Model.prototype.toString = function() {
+    return this.toHTML().replace(/<.+?>/g, '');
 }
