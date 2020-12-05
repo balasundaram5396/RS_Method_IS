@@ -141,7 +141,7 @@ ModelFinder.prototype.backtrack = function() {
         log("no more models to backtrack; initializing larger model");
         var WorldsNum = this.model.worlds.length;
         var IndividualsNum = this.model.domain.length;
-        if (WorldsNum && this.parser.isPropositional) {
+        if (WorldsNum && this.parser.isProp) {
             WorldsNum++;
         }
         else {
@@ -436,13 +436,13 @@ Model.prototype.toHTML = function() {
         str += "<tr><td align='right'>Worlds: </td><td align='left'>{ ";
         str += this.worlds.map(function(n){return w(n)}).join(", ");
         str += " }</td></tr>\n";
-        if (!this.parser.isPropositional) {
+        if (!this.parser.isProp) {
             str += "<tr><td>Individuals: </td><td align='left'>{ ";
             str += this.domain.join(", ");
             str += " }</td></tr>\n";
         }
     }
-    else if (!this.parser.isPropositional) {
+    else if (!this.parser.isProp) {
         str += "<tr><td align='right'>Domain: </td><td align='left'>{ ";
         str += this.domain.join(", ");
         str += " }</td></tr>\n";
@@ -521,7 +521,7 @@ Model.prototype.getExtensions = function() {
     }
     for (var i=0; i<this.modelfinder.predicates.length; i++) {
         var p = this.modelfinder.predicates[i];
-        result[p] = (this.parser.arities[p] == 0) ? false : [];
+        result[p] = (this.parser.ats[p] == 0) ? false : [];
         for (var j=0; j<interpretedStrings.length; j++) {
             var expr = interpretedStrings[j];
             if (expr.indexOf(p+'[') == 0) { 
