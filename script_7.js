@@ -1,42 +1,30 @@
-var fFieldValue = '';
-function updateInput() {
-    var os = document.forms[0].flaField.value;
-    if (os == fFieldValue) {
-        return true;
-    }
-    cposition = this.selectionStart;
-    fFieldValue = SymbolRender(os);  
-    var difference = os.length - fFieldValue.length
-    document.forms[0].flaField.value = fFieldValue;
-    this.selectionEnd = cposition - difference;
-    AccessRowToggle();
-}
+var fVal = '';
 
-function SymbolRender(str) {
+function Symbols(str) {
     str = str.replace('&', '∧');
-    str = str.replace('^', '∧');
     str = str.replace('<->', '↔');
-    str = str.replace('->', '→');
     str = str.replace('~', '¬');
-    str = str.replace(' v ', ' ∨ '); 
     str = str.replace('[]', '□');
-    str = str.replace('<>', '◇');
     str = str.replace(/\(A([s-z])\)/, '∀$1'); 
+    str = str.replace('^', '∧');
+    str = str.replace('->', '→');
+    str = str.replace(' v ', ' ∨ '); 
+    str = str.replace('<>', '◇');
     str = str.replace(/\(E([s-z])\)/, '∃$1'); 
     str = str.replace(/(?:^|\W)\(([s-z])\)/, '∀$1'); 
-    str = str.replace(/\\forall[\{ ]?\}?/g, '∀');
     str = str.replace(/\\exists[\{ ]?\}?/g, '∃');
-    str = str.replace(/(\\neg|\\lnot)[\{ ]?\}?/g, '¬');
     str = str.replace(/(\\vee|\\lor)[\{ ]?\}?/g, '∨');
-    str = str.replace(/(\\wedge|\\land)[\{ ]?\}?/g, '∧');
     str = str.replace(/(\\to|\\rightarrow)[\{ ]?\}?/g, '→');
-    str = str.replace(/\\leftrightarrow[\{ ]?\}?/g, '↔');
     str = str.replace(/\\[Bb]ox[\{ ]?\}?/g, '□');
+    str = str.replace(/\\forall[\{ ]?\}?/g, '∀');
+    str = str.replace(/(\\neg|\\lnot)[\{ ]?\}?/g, '¬');
+    str = str.replace(/(\\wedge|\\land)[\{ ]?\}?/g, '∧');
+    str = str.replace(/\\leftrightarrow[\{ ]?\}?/g, '↔');
     str = str.replace(/\\[Dd]iamond[\{ ]?\}?/g, '◇');
     return str;
 }
 
-function AccessRowToggle() {
+function Toggle() {
     if (/[□◇]/.test(document.forms[0].flaField.value)) {
         document.getElementById('accessibilitySpan').style.display = 'inline-block';
     }
@@ -44,6 +32,29 @@ function AccessRowToggle() {
         document.getElementById('accessibilitySpan').style.display = 'none';
     }
 }
+
+function updateInput() {
+    var os = document.forms[0].flaField.value;
+    if (os == fVal) {
+        return true;
+    }
+    cposition = this.selectionStart;
+    fVal = Symbols(os);  
+    var difference = os.length - fVal.length
+    document.forms[0].flaField.value = fVal;
+    this.selectionEnd = cposition - difference;
+    Toggle();
+}
+
+document.querySelectorAll('.symbutton').forEach(function(el) {
+    el.onclick = function(e) {
+        var field = document.forms[0].flaField;
+        var cmd = this.innerHTML;
+        field.insertAtCaret(cmd);
+        Toggle();
+    }
+});
+
 document.forms[0].flaField.insertAtCaret = function(str) {
    if (document.selection) {
       this.focus();
@@ -69,15 +80,6 @@ document.forms[0].flaField.insertAtCaret = function(str) {
    }
 }
 
-document.querySelectorAll('.symbutton').forEach(function(el) {
-    el.onclick = function(e) {
-        var field = document.forms[0].flaField;
-        var cmd = this.innerHTML;
-        field.insertAtCaret(cmd);
-        AccessRowToggle();
-    }
-});
-
 var prover = null;
 function Proof_Start() {
     var input = document.forms[0].flaField.value;
@@ -93,10 +95,10 @@ function Proof_Start() {
         return false;
     }
     document.getElementById("intro").style.display = "none";
-    document.getElementById("model").style.display = "none";
-    document.getElementById("rootAnchor").style.display = "none";
     document.getElementById("backtostartpage").style.display = "block";
+    document.getElementById("model").style.display = "none";
     document.getElementById("status").style.display = "block";
+    document.getElementById("rootAnchor").style.display = "none";
     document.getElementById("status").innerHTML = "<div id='working'>working</div>";
     var Access_Constraints = [];
     if (parser.isModal) {
@@ -118,18 +120,18 @@ function Proof_Start() {
             }).join(', ') + (treeClosed ? " entails " : " does not entail ") + Span_conclusion + ".";
         }
         document.getElementById("status").innerHTML = summary;
-        var sentree = new SenTree(this.tree, parser); 
+        var sTree = new STree(this.tree, parser); 
         if (!treeClosed) {
             if (this.counterModel) {
                 }
             return; 
         }
         if (parser.isModal) {
-            sentree.modalize();
+            sTree.createModel();
         }
         document.getElementById("rootAnchor").style.display = "block";
-        self.painter = new TreePainter(sentree, document.getElementById("rootAnchor"));
-        self.painter.paintTree();
+        self.painter = new TPaint(sTree, document.getElementById("rootAnchor"));
+        self.painter.treePaint();
     }
     setTimeout(function(){
         prover.start();
@@ -168,11 +170,11 @@ function setHash() {
 window.onChange_Hash = Change_Hash;
 
 function Change_Hash() {
+    if (prover) prover.stop();
     if (Hash_Script) {
         Hash_Script = false;
         return;
     }
-    if (prover) prover.stop();
     if (location.hash.length == 0) {
         document.getElementById("intro").style.display = "block";
         document.getElementById("model").style.display = "none";
@@ -188,8 +190,7 @@ function Change_Hash() {
         document.querySelectorAll('.accCheckbox').forEach(function(el) {
             el.checked = Access_Constraints.includes(el.id); 
         });
-        AccessRowToggle();
+        Toggle();
         Proof_Start();
     }
 }
-
