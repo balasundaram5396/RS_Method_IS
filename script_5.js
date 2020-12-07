@@ -1,4 +1,4 @@
-function SenTree(fvTree, parser) {
+function STree(fvTree, parser) {
     this.nodes = [];
     this.isClosed = (fvTree.openBranches.length == 0);
     this.initFormulas = fvTree.prover.initFormulas;
@@ -6,60 +6,51 @@ function SenTree(fvTree, parser) {
     this.initFormulasNormalized = fvTree.prover.initFormulasNormalized;
     this.fvTree = fvTree;
     this.parser = parser; 
-    this.fvParser = fvTree.parser; 
+    this.parserFV = fvTree.parser; 
     this.markEndNodesClosed();
-    this.transferNodes();
-    log(this.toString());
+    this.changeNodes();
     this.removeUnusedNodes();
-    log(this.toString());
     this.replaceFreeVariablesAndSkolemTerms();
-    log(this.toString());
 }
 
-SenTree.prototype.markEndNodesClosed = function() {
-    for (var i=0; i<this.fvTree.closedBranches.length; i++) {
-        var branch = this.fvTree.closedBranches[i]; 
-        branch.nodes[branch.nodes.length-1].closedEnd = true;
-    }
-}
-SenTree.prototype.transferNodes = function() {
-    log("initializing sentence tableau nodes");
-
-    this.addInitNodes();
-    var branches = this.fvTree.closedBranches.concat(this.fvTree.openBranches);
-    for (var b=0; b<branches.length; b++) {
-        var par;
-        for (var n=0; n<branches[b].nodes.length; n++) {
-            var node = branches[b].nodes[n];
-            if (node.isSenNode) {
-                par = node.swappedWith || node;
-                continue;
-            }
-            log(this.toString());
-            par = this.transferNode(node, par);
-        }
-    }
-}
-
-SenTree.prototype.transferNode = function(node, par) {
+STree.prototype.transferNode = function(node, par) {
     var formula_node = node.formula;
     for (var i=0; i<node.fromNodes.length; i++) {
         if (node.fromNodes[i].formula.type == 'doublenegation') {
             this.expandDoubleNegation(node.fromNodes[i]);
-            log('setting fromNode '+i+' of '+node+' to '+node.fromNodes[i].dneTo);
-            node.fromNodes[i] = node.fromNodes[i].dneTo;
+            node.fromNodes[i] = node.fromNodes[i].doubleNegate;
         }
     }
-    if (par.dneTo) par = par.dneTo;
+    if (par.doubleNegate) par = par.doubleNegate;
         
     switch (node.fromRule) {
+
+    case Prover.beta: {
+        var from = node.fromNodes[0];
+        var a1 = from.formula.beta(1);
+        var a2 = from.formula.beta(2);
+        if (!formula_node.equals(a1.normalize())) node.formula = a2;
+        else if (!formula_node.equals(a2.normalize())) node.formula = a1;
+        else {
+            node.formula = (par.children && par.children.length) ? a2 : a1;
+        }
+        if (from.formula.operator == '↔' ||
+            (from.formula.operator == '¬' && from.formula.sub.operator == '↔')) {
+            node.biConditionFull = true;
+            node.used = false;
+        }
+        this.appendChild(par, node);
+        if (par.children.length == 2 && node.formula == a1) {
+            par.children.reverse();
+        }
+        return node;
+    }
+
     case Prover.alpha : {
         var from = node.fromNodes[0];
-        log("transferring "+node+" (alpha from "+from+")");
         var a1 = from.formula.alpha(1);
         var a2 = from.formula.alpha(2);
-        log("alpha1 "+a1+" alpha2 "+a2);
-        if (from.biconditionalExpansion) {
+        if (from.biConditionFull) {
             node.fromNodes = from.fromNodes;
             node.expansionStep = from.expansionStep;
         }
@@ -77,44 +68,33 @@ SenTree.prototype.transferNode = function(node, par) {
         
         
     }
-        
-    case Prover.beta: {
+
+    case Prover.modalGamma: {
         var from = node.fromNodes[0];
-        log("transferring "+node+" (beta from "+from+")");
-        var a1 = from.formula.beta(1);
-        var a2 = from.formula.beta(2);
-        log("beta1 "+a1+" beta2 "+a2);
-        if (!formula_node.equals(a1.normalize())) node.formula = a2;
-        else if (!formula_node.equals(a2.normalize())) node.formula = a1;
-        else {
-            node.formula = (par.children && par.children.length) ? a2 : a1;
+        if (from.formula.sub) {
+            var newFla = from.formula.sub.matrix.sub2.negate();
+            var boundVar = from.formula.sub.variable;
         }
-        if (from.formula.operator == '↔' ||
-            (from.formula.operator == '¬' && from.formula.sub.operator == '↔')) {
-            node.biconditionalExpansion = true;
-            node.used = false;
+        else { 
+            var newFla = from.formula.matrix.sub2;
+            var boundVar = from.formula.variable;
         }
+        node.formula = newFla.substitute(boundVar, node.instanceTerm);
         this.appendChild(par, node);
-        if (par.children.length == 2 && node.formula == a1) {
-            log('swapping children because node.formula == beta1');
-            par.children.reverse();
-        }
         return node;
     }
-        
+
     case Prover.gamma: case Prover.delta: {
         var from = node.fromNodes[0];
-        log("transferring "+node+" (gamma/delta from "+from+")");
         var matrix = from.formula.matrix || from.formula.sub.matrix;
         if (this.fvTree.prover.s5 && matrix.sub1 &&
-            matrix.sub1.predicate == this.fvParser.R) {
+            matrix.sub1.predicate == this.parserFV.R) {
             var newFla = from.formula.sub ? matrix.sub2.negate() : matrix.sub2;
         }
         else {
             var newFla = from.formula.sub ? matrix.negate() : matrix;
         }
         var boundVar = from.formula.sub ? from.formula.sub.variable : from.formula.variable;
-        log(boundVar + ' is instantiated (in '+newFla+') by '+node.instanceTerm);
         if (node.instanceTerm) {
             node.formula = newFla.substitute(boundVar, node.instanceTerm);
         }
@@ -125,27 +105,9 @@ SenTree.prototype.transferNode = function(node, par) {
         return node;
     }
 
-    case Prover.modalGamma: {
-        var from = node.fromNodes[0];
-        log("transferring "+node+" (modalGamma from "+from+")");
-        if (from.formula.sub) {
-            var newFla = from.formula.sub.matrix.sub2.negate();
-            var boundVar = from.formula.sub.variable;
-        }
-        else { 
-            var newFla = from.formula.matrix.sub2;
-            var boundVar = from.formula.variable;
-        }
-        log(boundVar + ' is instantiated (in '+newFla+') by '+node.instanceTerm);
-        node.formula = newFla.substitute(boundVar, node.instanceTerm);
-        this.appendChild(par, node);
-        return node;
-    }
-
     case Prover.modalDelta: 
         var from = node.fromNodes[0];
-        log("transferring "+node+" (modalDelta from "+from+")");
-        if (node.formula.predicate == this.fvParser.R) {
+        if (node.formula.predicate == this.parserFV.R) {
             this.appendChild(par, node);
         }
         else {
@@ -169,12 +131,35 @@ SenTree.prototype.transferNode = function(node, par) {
     }
 }
 
-SenTree.prototype.addInitNodes = function() {
+STree.prototype.markEndNodesClosed = function() {
+    for (var i=0; i<this.fvTree.closedBranches.length; i++) {
+        var branch = this.fvTree.closedBranches[i]; 
+        branch.nodes[branch.nodes.length-1].closedEnd = true;
+    }
+}
+
+STree.prototype.changeNodes = function() {
+
+    this.addInitNodes();
+    var branches = this.fvTree.closedBranches.concat(this.fvTree.openBranches);
+    for (var b=0; b<branches.length; b++) {
+        var par;
+        for (var n=0; n<branches[b].nodes.length; n++) {
+            var node = branches[b].nodes[n];
+            if (node.isSenNode) {
+                par = node.swappedWith || node;
+                continue;
+            }
+            par = this.transferNode(node, par);
+        }
+    }
+}
+
+STree.prototype.addInitNodes = function() {
     var branch = this.fvTree.closedBranches.length > 0 ?
         this.fvTree.closedBranches[0] : this.fvTree.openBranches[0];
     
     for (var i=0; i<this.initFormulasNonModal.length; i++) {
-        log('adding init node '+branch.nodes[i]);
         var node = this.makeNode(branch.nodes[i]);
         node.formula = this.initFormulasNonModal[i];
         node.used = true; 
@@ -183,12 +168,11 @@ SenTree.prototype.addInitNodes = function() {
     }
 }
 
-SenTree.prototype.expandDoubleNegation = function(node) {
-    if (node.dneTo) return;
-    log("expanding double negation "+node);
+STree.prototype.expandDoubleNegation = function(node) {
+    if (node.doubleNegate) return;
     var newNode = new Node(node.formula.sub.sub, null, [node]);
     this.makeNode(newNode);
-    node.dneTo = newNode;
+    node.doubleNegate = newNode;
     var dnePar = node;
     if (node.children[0] && node.children[0].fromNodes[0] == node.fromNodes[0]) {
         dnePar = node.children[0];
@@ -203,68 +187,62 @@ SenTree.prototype.expandDoubleNegation = function(node) {
     this.nodes.push(newNode);
 } 
 
-SenTree.prototype.replaceFreeVariablesAndSkolemTerms = function() {
-    log("replacing free variables and skolem terms by new constants");   
-    var translations = {};
+STree.prototype.replaceFreeVariablesAndSkolemTerms = function() {
+    var meanings = {};
     for (var n=0; n<this.nodes.length; n++) {
         var node = this.nodes[n];
         var varMatches = node.formula.string.match(/[ξζ]\d+/g);
         if (varMatches) {
             for (var j=0; j<varMatches.length; j++) {
                 var fv = varMatches[j];
-                if (!translations[fv]) {
+                if (!meanings[fv]) {
                     var sym = (fv[0] == 'ζ') ?
                         this.parser.getNewWorldName() : this.parser.getNewConstant();
-                    translations[fv] = sym;
+                    meanings[fv] = sym;
                 }
-                log("replacing "+fv+" by "+translations[fv]);
                 node.formula = node.formula.substitute(
-                    fv, translations[fv]
+                    fv, meanings[fv]
                 );
             }
         }
         var skterms = getSkolemTerms(node.formula);
-        var indivTerms = skterms[0], worldTerms = skterms[1];
-        for (var c=0; c<indivTerms.length; c++) {
-            var termstr = indivTerms[c].toString();
-            if (!translations[termstr]) {
-                log(termstr + " is skolem term");
-                translations[termstr] = this.parser.getNewConstant();
+        var separateTerms = skterms[0], universalTerms = skterms[1];
+        for (var c=0; c<separateTerms.length; c++) {
+            var termstr = separateTerms[c].toString();
+            if (!meanings[termstr]) {
+                meanings[termstr] = this.parser.getNewConstant();
             }
-            log("replacing "+indivTerms[c]+" by "+translations[termstr]);
             node.formula = node.formula.substitute(
-                indivTerms[c], translations[termstr]
+                separateTerms[c], meanings[termstr]
             );
         }
-        for (var c=0; c<worldTerms.length; c++) {
-            var termstr = worldTerms[c].toString();
-            if (!translations[termstr]) {
-                log(termstr + " is worldly skolem term");
-                translations[termstr] = this.parser.getNewWorldName(true);
+        for (var c=0; c<universalTerms.length; c++) {
+            var termstr = universalTerms[c].toString();
+            if (!meanings[termstr]) {
+                meanings[termstr] = this.parser.getNewWorldName(true);
             }
-            log("replacing "+worldTerms[c]+" by "+translations[termstr]);
             node.formula = node.formula.substitute(
-                worldTerms[c], translations[termstr]
+                universalTerms[c], meanings[termstr]
             );
         }
     }
     
     function getSkolemTerms(formula) {
-        var worldTerms = [];
-        var indivTerms = [];
+        var universalTerms = [];
+        var separateTerms = [];
         var flas = [formula]; 
         var fla;
         while ((fla = flas.shift())) {
             if (fla.isArray) { 
                 for (var i=0; i<fla.length; i++) {
                     if (fla[i].isArray) {
-                        if (fla[i][0][0] == 'φ') indivTerms.push(fla[i]);
-                        else if (fla[i][0][0] == 'ω') worldTerms.push(fla[i]);
+                        if (fla[i][0][0] == 'φ') separateTerms.push(fla[i]);
+                        else if (fla[i][0][0] == 'ω') universalTerms.push(fla[i]);
                         else flas.unshift(fla[i]);
                     }
                     else {
-                        if (fla[i][0] == 'φ') indivTerms.push(fla[i]);
-                        else if (fla[i][0] == 'ω') worldTerms.push(fla[i]);
+                        if (fla[i][0] == 'φ') separateTerms.push(fla[i]);
+                        else if (fla[i][0] == 'ω') universalTerms.push(fla[i]);
                     }
                 }
             }
@@ -282,19 +260,18 @@ SenTree.prototype.replaceFreeVariablesAndSkolemTerms = function() {
                 flas.unshift(fla.terms);
             }
         }
-        return [indivTerms, worldTerms];
+        return [separateTerms, universalTerms];
     }
 }
 
-SenTree.prototype.removeUnusedNodes = function() {
-    log("removing unused nodes");
+STree.prototype.removeUnusedNodes = function() {
     if (!this.isClosed) return;
     for (var i=0; i<this.nodes.length; i++) {
         var node = this.nodes[i];
         if (node.used) {
             var expansion = this.getExpansion(node);
             for (var j=0; j<expansion.length; j++) {
-                if (!expansion[j].biconditionalExpansion) {
+                if (!expansion[j].biConditionFull) {
                     expansion[j].used = true;
                 }
             }
@@ -308,29 +285,25 @@ SenTree.prototype.removeUnusedNodes = function() {
     }
 }
 
-SenTree.prototype.modalize = function() {
-    log("modalizing tree");
+STree.prototype.createModel = function() {
     for (var i=0; i<this.nodes.length; i++) {
         var node = this.nodes[i];
-        log('modalising '+node.formula);
-        node.formula = this.fvParser.translateToModal(node.formula);
-        if (node.formula.predicate == this.fvParser.R) {
-            node.formula.string = node.formula.terms[0] + this.fvParser.R
+        node.formula = this.parserFV.translateToModal(node.formula);
+        if (node.formula.predicate == this.parserFV.R) {
+            node.formula.string = node.formula.terms[0] + this.parserFV.R
                 + node.formula.terms[1];
         }
     }
-    log(this.toString());
 }
 
-SenTree.prototype.makeNode = function(node) {
+STree.prototype.makeNode = function(node) {
     node.parent = null;
     node.children = [];
     node.isSenNode = true;
     return node;
 }
 
-SenTree.prototype.appendChild = function(oldNode, newNode) {
-   log("appending "+newNode+" to "+ oldNode); 
+STree.prototype.appendChild = function(oldNode, newNode) {
    if (!newNode.isSenNode) {
        newNode = this.makeNode(newNode);
    }
@@ -344,9 +317,8 @@ SenTree.prototype.appendChild = function(oldNode, newNode) {
    return newNode;
 }
 
-SenTree.prototype.remove = function(node) {
+STree.prototype.remove = function(node) {
     if (node.isRemoved) return;
-    log("removing " + node + " (parent: " + node.parent + ", children: " + node.children + ")");
     if (node.parent.children.length == 1) {
         node.parent.children = node.children;
         if (node.children[0]) {
@@ -360,7 +332,6 @@ SenTree.prototype.remove = function(node) {
     }
     else {
         if (node.children.length > 1) {
-            log("can't remove a node with two children that itself has a sibling");
             return false;
         }
         var i = (node == node.parent.children[0]) ? 0 : 1;
@@ -376,7 +347,7 @@ SenTree.prototype.remove = function(node) {
     return true;
 }
 
-SenTree.prototype.toString = function() {
+STree.prototype.toString = function() {
    return "<table><tr><td align='center' style='font-family:monospace'>"+getTree(this.nodes[0])+"</td</tr></table>";
    function getTree(node) {
       var recursionDepth = arguments[1] || 0;
@@ -388,14 +359,13 @@ SenTree.prototype.toString = function() {
    }
 }
 
-SenTree.prototype.substitute = function(oldTerm, newTerm) {
+STree.prototype.substitute = function(oldTerm, newTerm) {
     for (var i=0; i<this.nodes.length; i++) {
-        log("substituting "+oldTerm+" by "+newTerm+" in "+this.nodes[i].formula);
         this.nodes[i].formula = this.nodes[i].formula.substitute(oldTerm, newTerm);
     }
 }
 
-SenTree.prototype.reverse = function(node1, node2) {
+STree.prototype.reverse = function(node1, node2) {
    node2.parent = node1.parent;
    node1.parent = node2;
    if (node2.parent.children[0] == node1) node2.parent.children[0] = node2;
@@ -412,7 +382,7 @@ SenTree.prototype.reverse = function(node1, node2) {
    node1.swappedWith = node2;
 }
 
-SenTree.prototype.getExpansion = function(node) {
+STree.prototype.getExpansion = function(node) {
     
     var res = [node];
 
@@ -431,10 +401,10 @@ SenTree.prototype.getExpansion = function(node) {
     
     if (par) {
         for (var i=0; i<par.children.length; i++) {
-            var sib = par.children[i];
-            while (sib && sib.expansionStep == node.expansionStep) {
-                if (!res.includes(sib)) res.push(sib);
-                sib = sib.children[0];
+            var sibling = par.children[i];
+            while (sibling && sibling.expansionStep == node.expansionStep) {
+                if (!res.includes(sibling)) res.push(sibling);
+                sibling = sibling.children[0];
             }
         }
     }
@@ -442,7 +412,7 @@ SenTree.prototype.getExpansion = function(node) {
     return res;
 }
 
-SenTree.prototype.getCounterModel = function() {
+STree.prototype.getCountVal = function() {
     var endNode = null;
     for (var i=0; i<this.nodes.length; i++) {
         if (this.nodes[i].children.length || this.nodes[i].closedEnd) continue;
@@ -451,7 +421,6 @@ SenTree.prototype.getCounterModel = function() {
     }
     if (!endNode) return null;
     
-    log("creating counterModel from endNode " + endNode);
     var model = new Model(this.fvTree.prover.modelfinder, 0, 0);
    
     var node = endNode;
@@ -481,18 +450,15 @@ SenTree.prototype.getCounterModel = function() {
             var term = terms[t];
             var rterm = model.reduceArguments(terms[t]).toString();
             if (rterm in model.interpretation) continue;
-            var domain = this.fvParser.expressionType[term] &&
-                this.fvParser.expressionType[term].indexOf('world') > -1 ? 
+            var domain = this.parserFV.expressionType[term] &&
+                this.parserFV.expressionType[term].indexOf('world') > -1 ? 
                 model.worlds : model.domain;
-            log("adding "+domain.length+" to domain for "+term);
             domain.push(domain.length);
             model.interpretation[rterm] = domain.length-1;
         }
         if (!model.satisfy(fla)) {
-            log("!!! model doesn't satisfy "+fla);
             return null;
         }
-        log(model.toString());
     } while ((node = node.parent));
     
     if (model.domain.length == 0) {

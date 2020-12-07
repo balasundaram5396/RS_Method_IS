@@ -1,12 +1,12 @@
-function TreePainter(senTree, rootAnchor) {
+function TPaint(sTree, rootAnchor) {
     this.paintInterval = 200;      
     this.branchPadding = window.innerWidth < 500 ? 0 :
         window.innerWidth < 800 ? 20 : 30;
     this.branchingHeight = 40;    
     this.nodeHiParentCSS = "treeNodeHiParent" 
     this.nodeHiChildCSS = "treeNodeHiChild"  
-    this.tree = senTree;
-    this.isModal = senTree.parser.isModal;
+    this.tree = sTree;
+    this.isModal = sTree.parser.isModal;
     this.rootAnchor = rootAnchor;
     this.rootAnchor.innerHTML = "";
     this.minX = this.branchPadding/2 - rootAnchor.offsetLeft;
@@ -15,42 +15,15 @@ function TreePainter(senTree, rootAnchor) {
     this.highlighted = [];
 }
 
-TreePainter.prototype.paintTree = function() {
-    var node = this.getNextUnpaintedNode();
-    if (!node) {
-        this.highlightNothing();
-        return this.finished();
-    }
-    var paintNodes = this.tree.getExpansion(node);
-    log("expansion: " + paintNodes);
-    for (var i=0; i<paintNodes.length; i++) {
-        this.paint(paintNodes[i]);
-    }
-    this.highlight(paintNodes, node.fromNodes);
-
-    this.paintTimer = setTimeout(function(){
-        this.paintTree();
-    }.bind(this), this.paintInterval);
-}
-
-TreePainter.prototype.stop = function() {
-    clearTimeout(this.paintTimer);
-}
-
-TreePainter.prototype.finished = function() {
-}
-
-TreePainter.prototype.paint = function(node) {
+TPaint.prototype.paint = function(node) {
     if (!node.parent || node.parent.children.length == 2) {
         node.container = this.makeContainer(node);
     }
     else {
         node.container = node.parent.container;
     }
-    log("painting "+node+" in "+node.container.str);
-    node.div = this.makeNodeDiv(node);
+    node.div = this.makeNode(node);
     node.container.appendChild(node.div);
-    log('w '+node.formulaSpan.offsetWidth);
     node.div.style.top = node.container.h + "px";
     node.container.h += node.div.offsetHeight + 3; 
     if (node.children.length == 0) {
@@ -58,7 +31,6 @@ TreePainter.prototype.paint = function(node) {
     }
     if (node.formulaSpan.offsetWidth > node.container.formulaWidth) {
         node.container.formulaWidth = node.formulaSpan.offsetWidth + 10;
-        log('adjusting container width '+node.container.formulaWidth);
         var n = node;
         do {
             n.formulaSpan.style.width = node.container.formulaWidth + "px";
@@ -67,34 +39,36 @@ TreePainter.prototype.paint = function(node) {
         } while (n && n.container == node.container);
     }
     else {
-        log('using old container width '+node.container.formulaWidth);
         node.formulaSpan.style.width = node.container.formulaWidth + "px";
         node.div.style.left = -node.container.w/2 + "px";
     }
     node.container.w = Math.max(node.container.w, node.div.offsetWidth);
-    this.repositionBranches(node);
-    this.keepTreeInView();
+    this.branchReposition(node);
+    this.treeInView();
 }
 
-TreePainter.prototype.makeContainer = function(node) {
-    log('creating new container');
-    var parContainer = node.parent ? node.parent.container : this.rootAnchor;
-    var container = document.createElement('div');
-    parContainer.appendChild(container);
-    if (node.parent) parContainer.subContainers.push(container);
-    container.subContainers = [];
-    container.style.width = "100%";
-    container.style.position = "absolute";
-    container.style.left = "0px";
-    container.style.top = node.parent ? parContainer.h + this.branchingHeight + "px" : "0px";
-    container.w = container.h = 0;
-    container.str = "{ "+node+ " }" + (self.__strid ? self.__strid++ : (self.__strid = 1));
-    container.formulaClass = 'fla'+this.curNodeNumber;
-    container.formulaWidth = 0;
-    return container;
+TPaint.prototype.treePaint = function() {
+    var node = this.getNextUnpaintedNode();
+    if (!node) {
+        this.highlightNothing();
+        return this.finished();
+    }
+    var paintNodes = this.tree.getExpansion(node);
+    for (var i=0; i<paintNodes.length; i++) {
+        this.paint(paintNodes[i]);
+    }
+    this.highlight(paintNodes, node.fromNodes);
+
+    this.paintTimer = setTimeout(function(){
+        this.treePaint();
+    }.bind(this), this.paintInterval);
 }
 
-TreePainter.prototype.makeNodeDiv = function(node) {
+TPaint.prototype.stop = function() {
+    clearTimeout(this.paintTimer);
+}
+
+TPaint.prototype.makeNode = function(node) {
     var div = document.createElement('div');
     div.className = 'treeNode';
 
@@ -117,8 +91,8 @@ TreePainter.prototype.makeNodeDiv = function(node) {
         div.appendChild(worldSpan);
     }
 
-    var fromSpan = document.createElement('span');
-    fromSpan.className = 'fromnumbers';
+    var spanVal = document.createElement('span');
+    spanVal.className = 'fromnumbers';
     var annot = node.fromNodes.map(function(n) { return n.nodeNumber; });
     if (node.fromRule) {
         var fromRule = node.fromRule.toString().substr(0,3);
@@ -126,19 +100,38 @@ TreePainter.prototype.makeNodeDiv = function(node) {
             annot.push(fromRule+'.');
         }
     }
-    fromSpan.innerHTML = annot.length>0 ? "("+annot.join(',')+")" : " ";
-    div.appendChild(fromSpan);
+    spanVal.innerHTML = annot.length>0 ? "("+annot.join(',')+")" : " ";
+    div.appendChild(spanVal);
 
     return div;
 }
 
-TreePainter.prototype.repositionBranches = function(node) {
+TPaint.prototype.finished = function() {
+}
+
+TPaint.prototype.makeContainer = function(node) {
+    var parContainer = node.parent ? node.parent.container : this.rootAnchor;
+    var container = document.createElement('div');
+    parContainer.appendChild(container);
+    if (node.parent) parContainer.subContainers.push(container);
+    container.subContainers = [];
+    container.style.left = "0px";
+    container.style.width = "100%";
+    container.style.position = "absolute";
+    container.style.top = node.parent ? parContainer.h + this.branchingHeight + "px" : "0px";
+    container.w = container.h = 0;
+    container.str = "{ "+node+ " }" + (self.__strid ? self.__strid++ : (self.__strid = 1));
+    container.formulaClass = 'fla'+this.curNodeNumber;
+    container.formulaWidth = 0;
+    return container;
+}
+
+TPaint.prototype.branchReposition = function(node) {
     var par = node.container;
     while ((par = par.parentNode).subContainers) {
         if (!par.subContainers[1]) continue;
-        var overlap = this.getOverlap(par);
+        var overlap = this.getExtend(par);
         if (overlap) {
-            log(overlap+" overlap between "+par.subContainers[0].str+" and "+par.subContainers[1].str);
             var x1 = parseInt(par.subContainers[0].style.left) - Math.ceil(overlap/2);
             var x2 = parseInt(par.subContainers[1].style.left) + Math.ceil(overlap/2);
             par.subContainers[0].style.left = x1 + "px";
@@ -156,7 +149,7 @@ TreePainter.prototype.repositionBranches = function(node) {
     }
 }
 
-TreePainter.prototype.getOverlap = function(par) {
+TPaint.prototype.getExtend = function(par) {
     var overlap = 0;
     var co1, co2, co1s = [par.subContainers[0]], co2s;
     par.__x = 0; par.__y = 0;
@@ -179,7 +172,7 @@ TreePainter.prototype.getOverlap = function(par) {
     return Math.floor(overlap);
 }
 
-TreePainter.prototype.keepTreeInView = function() {
+TPaint.prototype.treeInView = function() {
     var mainContainer = this.rootAnchor.firstChild;
     if (mainContainer.getBoundingClientRect) {
         var midPoint = Math.round(mainContainer.getBoundingClientRect()['left']);
@@ -187,18 +180,16 @@ TreePainter.prototype.keepTreeInView = function() {
         if (winTreeRatio < 1) {
             this.scale = Math.max(winTreeRatio, 0.8);
             document.getElementById('rootAnchor').style.transform="scale("+this.scale+")";
-            log("tree doesn't fit: ratio window.width/tree.width "+winTreeRatio);
         }
     }
-    var minX = this.getMinX();
+    var minX = this.minXValue();
     if (minX < this.minX/this.scale) {
         var invisibleWidth = (this.minX/this.scale - minX);
-        log("minX " + minX + "<" + this.minX+": tree out of left document border by " + invisibleWidth);
         mainContainer.style.left = mainContainer.__x + invisibleWidth + "px";
     }
 }
 
-TreePainter.prototype.getMinX = function() {
+TPaint.prototype.minXValue = function() {
     var minX = 0;
     var con, cons = [this.rootAnchor.firstChild];
     while ((con = cons.shift())) {
@@ -211,7 +202,20 @@ TreePainter.prototype.getMinX = function() {
     return minX;
 }
 
-TreePainter.prototype.highlight = function(children, fromNodes) {
+TPaint.prototype.getNextUnpaintedNode = function() {
+    var nodes = [this.tree.nodes[0]];
+    var node;
+    while ((node = nodes.shift())) {
+        do {
+            if (!node.div) return node;
+            if (node.children.length == 2) nodes.unshift(node.children[1]);
+        } while ((node = node.children[0]));
+    }
+    return null;
+}
+    
+
+TPaint.prototype.highlight = function(children, fromNodes) {
     while (this.highlighted.length) {
         this.highlighted.shift().div.style.backgroundColor = 'unset';
     }
@@ -225,12 +229,11 @@ TreePainter.prototype.highlight = function(children, fromNodes) {
     this.highlighted = children.concat(fromNodes);
 }
 
-TreePainter.prototype.highlightNothing = function() {
+TPaint.prototype.highlightNothing = function() {
     this.highlight([], []);
 }
 
-TreePainter.prototype.drawLine = function(el, x1, y1, x2, y2) {
-    log('line in '+el+' from '+x1+'/'+y1+' to '+x2+'/'+y2);
+TPaint.prototype.drawLine = function(el, x1, y1, x2, y2) {
     var p = x1 - x2;
     var q = y1 - y2;
     var length = Math.sqrt(p*p + q*q);
@@ -253,16 +256,3 @@ TreePainter.prototype.drawLine = function(el, x1, y1, x2, y2) {
     el.appendChild(line);
     return line;
 }
-
-TreePainter.prototype.getNextUnpaintedNode = function() {
-    var nodes = [this.tree.nodes[0]];
-    var node;
-    while ((node = nodes.shift())) {
-        do {
-            if (!node.div) return node;
-            if (node.children.length == 2) nodes.unshift(node.children[1]);
-        } while ((node = node.children[0]));
-    }
-    return null;
-}
-    
