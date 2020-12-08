@@ -2,7 +2,7 @@ function TPaint(sTree, rootAnchor) {
     this.paintInterval = 200;      
     this.branchPadding = window.innerWidth < 500 ? 0 :
         window.innerWidth < 800 ? 20 : 30;
-    this.branchingHeight = 40;    
+    this.branchHeight = 40;    
     this.nodeHiParentCSS = "treeNodeHiParent" 
     this.nodeHiChildCSS = "treeNodeHiChild"  
     this.tree = sTree;
@@ -11,8 +11,8 @@ function TPaint(sTree, rootAnchor) {
     this.rootAnchor.innerHTML = "";
     this.minX = this.branchPadding/2 - rootAnchor.offsetLeft;
     this.scale = 1;
-    this.curNodeNumber = 0;
-    this.highlighted = [];
+    this.currNNum = 0;
+    this.highlightArr = [];
 }
 
 TPaint.prototype.paint = function(node) {
@@ -22,28 +22,28 @@ TPaint.prototype.paint = function(node) {
     else {
         node.container = node.parent.container;
     }
-    node.div = this.makeNode(node);
+    node.div = this.nodeMake(node);
     node.container.appendChild(node.div);
     node.div.style.top = node.container.h + "px";
     node.container.h += node.div.offsetHeight + 3; 
     if (node.children.length == 0) {
         node.container.h += this.branchPadding;
     }
-    if (node.formulaSpan.offsetWidth > node.container.formulaWidth) {
-        node.container.formulaWidth = node.formulaSpan.offsetWidth + 10;
+    if (node.spanFormula.offsetWidth > node.container.formulaWidth) {
+        node.container.formulaWidth = node.spanFormula.offsetWidth + 10;
         var n = node;
         do {
-            n.formulaSpan.style.width = node.container.formulaWidth + "px";
+            n.spanFormula.style.width = node.container.formulaWidth + "px";
             n.div.style.left = -node.div.offsetWidth/2 + "px";
             n = n.parent;
         } while (n && n.container == node.container);
     }
     else {
-        node.formulaSpan.style.width = node.container.formulaWidth + "px";
+        node.spanFormula.style.width = node.container.formulaWidth + "px";
         node.div.style.left = -node.container.w/2 + "px";
     }
     node.container.w = Math.max(node.container.w, node.div.offsetWidth);
-    this.branchReposition(node);
+    this.branchRepo(node);
     this.treeInView();
 }
 
@@ -68,21 +68,21 @@ TPaint.prototype.stop = function() {
     clearTimeout(this.paintTimer);
 }
 
-TPaint.prototype.makeNode = function(node) {
+TPaint.prototype.nodeMake = function(node) {
     var div = document.createElement('div');
     div.className = 'treeNode';
 
     var nodeNumberSpan = document.createElement('span');
-    node.nodeNumber = ++this.curNodeNumber;
+    node.nodeNumber = ++this.currNNum;
     nodeNumberSpan.className = 'nodenumber';
     nodeNumberSpan.innerHTML = node.nodeNumber+'.';
     div.appendChild(nodeNumberSpan);
     
-    node.formulaSpan = document.createElement('span');
-    node.formulaSpan.className = 'formula '+node.container.formulaClass;
-    node.formulaSpan.innerHTML = node.formula.string;
-    if (node.closedEnd) node.formulaSpan.innerHTML += "<br><b>x</b>";
-    div.appendChild(node.formulaSpan);
+    node.spanFormula = document.createElement('span');
+    node.spanFormula.className = 'formula '+node.container.formulaClass;
+    node.spanFormula.innerHTML = node.formula.string;
+    if (node.closedEnd) node.spanFormula.innerHTML += "<br><b>x</b>";
+    div.appendChild(node.spanFormula);
     
     if (this.isModal) {
         var worldSpan = document.createElement('span');
@@ -118,64 +118,64 @@ TPaint.prototype.makeContainer = function(node) {
     container.style.left = "0px";
     container.style.width = "100%";
     container.style.position = "absolute";
-    container.style.top = node.parent ? parContainer.h + this.branchingHeight + "px" : "0px";
+    container.style.top = node.parent ? parContainer.h + this.branchHeight + "px" : "0px";
     container.w = container.h = 0;
     container.str = "{ "+node+ " }" + (self.__strid ? self.__strid++ : (self.__strid = 1));
-    container.formulaClass = 'fla'+this.curNodeNumber;
+    container.formulaClass = 'fla'+this.currNNum;
     container.formulaWidth = 0;
     return container;
 }
 
-TPaint.prototype.branchReposition = function(node) {
-    var par = node.container;
-    while ((par = par.parentNode).subContainers) {
-        if (!par.subContainers[1]) continue;
-        var overlap = this.getExtend(par);
+TPaint.prototype.branchRepo = function(node) {
+    var parent = node.container;
+    while ((parent = parent.parentNode).subContainers) {
+        if (!parent.subContainers[1]) continue;
+        var overlap = this.getExtend(parent);
         if (overlap) {
-            var x1 = parseInt(par.subContainers[0].style.left) - Math.ceil(overlap/2);
-            var x2 = parseInt(par.subContainers[1].style.left) + Math.ceil(overlap/2);
-            par.subContainers[0].style.left = x1 + "px";
-            par.subContainers[1].style.left = x2 + "px";
-            if (par.branchLines) {
-                for (var i=0; i<par.branchLines.length; i++) {
-                    par.removeChild(par.branchLines[i]);
+            var x1 = parseInt(parent.subContainers[0].style.left) - Math.ceil(overlap/2);
+            var x2 = parseInt(parent.subContainers[1].style.left) + Math.ceil(overlap/2);
+            parent.subContainers[0].style.left = x1 + "px";
+            parent.subContainers[1].style.left = x2 + "px";
+            if (parent.branchLines) {
+                for (var i=0; i<parent.branchLines.length; i++) {
+                    parent.removeChild(parent.branchLines[i]);
                 }
             }
             var centre = this.isModal ? -8 : 0; 
-            var line1 = this.drawLine(par, centre, par.h, x1+centre, par.h + this.branchingHeight-2);
-            var line2 = this.drawLine(par, centre, par.h, x2+centre, par.h + this.branchingHeight-2);
-            par.branchLines = [line1, line2];
+            var line1 = this.drawLine(parent, centre, parent.h, x1+centre, parent.h + this.branchHeight-2);
+            var line2 = this.drawLine(parent, centre, parent.h, x2+centre, parent.h + this.branchHeight-2);
+            parent.branchLines = [line1, line2];
         }
     }
 }
 
-TPaint.prototype.getExtend = function(par) {
+TPaint.prototype.getExtend = function(parent) {
     var overlap = 0;
-    var co1, co2, co1s = [par.subContainers[0]], co2s;
-    par.__x = 0; par.__y = 0;
-    while ((co1 = co1s.shift())) {
-        co2s = [par.subContainers[1]];
-        while ((co2 = co2s.shift())) {
-            co1.__x = co1.parentNode.__x + parseInt(co1.style.left);
-            co1.__y = co1.parentNode.__y + parseInt(co1.style.top);
-            co2.__x = co2.parentNode.__x + parseInt(co2.style.left);
-            co2.__y = co2.parentNode.__y + parseInt(co2.style.top);
-            if ((co1.__y >= co2.__y) && (co1.__y < co2.__y + co2.h) ||
-                (co2.__y >= co1.__y) && (co2.__y < co1.__y + co1.h)) { 
-                var overlap12 = (co1.__x + co1.w/2 + painter.branchPadding) - (co2.__x - co2.w/2);
+    var cont1, cont2, co1s = [parent.subContainers[0]], co2s;
+    parent.__x = 0; parent.__y = 0;
+    while ((cont1 = co1s.shift())) {
+        co2s = [parent.subContainers[1]];
+        while ((cont2 = co2s.shift())) {
+            cont1.__x = cont1.parentNode.__x + parseInt(cont1.style.left);
+            cont1.__y = cont1.parentNode.__y + parseInt(cont1.style.top);
+            cont2.__x = cont2.parentNode.__x + parseInt(cont2.style.left);
+            cont2.__y = cont2.parentNode.__y + parseInt(cont2.style.top);
+            if ((cont1.__y >= cont2.__y) && (cont1.__y < cont2.__y + cont2.h) ||
+                (cont2.__y >= cont1.__y) && (cont2.__y < cont1.__y + cont1.h)) { 
+                var overlap12 = (cont1.__x + cont1.w/2 + painter.branchPadding) - (cont2.__x - cont2.w/2);
                 overlap = Math.max(overlap, overlap12);
             }
-            co2s = co2s.concat(co2.subContainers);
+            co2s = co2s.concat(cont2.subContainers);
         }
-        co1s = co1s.concat(co1.subContainers);
+        co1s = co1s.concat(cont1.subContainers);
     }
     return Math.floor(overlap);
 }
 
 TPaint.prototype.treeInView = function() {
-    var mainContainer = this.rootAnchor.firstChild;
-    if (mainContainer.getBoundingClientRect) {
-        var midPoint = Math.round(mainContainer.getBoundingClientRect()['left']);
+    var containerMain = this.rootAnchor.firstChild;
+    if (containerMain.getBoundingClientRect) {
+        var midPoint = Math.round(containerMain.getBoundingClientRect()['left']);
         var winTreeRatio = window.innerWidth*1.0/(midPoint*2);
         if (winTreeRatio < 1) {
             this.scale = Math.max(winTreeRatio, 0.8);
@@ -185,19 +185,19 @@ TPaint.prototype.treeInView = function() {
     var minX = this.minXValue();
     if (minX < this.minX/this.scale) {
         var invisibleWidth = (this.minX/this.scale - minX);
-        mainContainer.style.left = mainContainer.__x + invisibleWidth + "px";
+        containerMain.style.left = containerMain.__x + invisibleWidth + "px";
     }
 }
 
 TPaint.prototype.minXValue = function() {
     var minX = 0;
-    var con, cons = [this.rootAnchor.firstChild];
-    while ((con = cons.shift())) {
-        con.__x = (con.parentNode.__x || 0) + parseInt(con.style.left);
-        if (con.__x - con.w/2 < minX) {
-            minX = con.__x - con.w/2;
+    var cont, cons = [this.rootAnchor.firstChild];
+    while ((cont = cons.shift())) {
+        cont.__x = (cont.parentNode.__x || 0) + parseInt(cont.style.left);
+        if (cont.__x - cont.w/2 < minX) {
+            minX = cont.__x - cont.w/2;
         }
-        cons = cons.concat(con.subContainers);
+        cons = cons.concat(cont.subContainers);
     }
     return minX;
 }
@@ -216,8 +216,8 @@ TPaint.prototype.getNextUnpaintedNode = function() {
     
 
 TPaint.prototype.highlight = function(children, fromNodes) {
-    while (this.highlighted.length) {
-        this.highlighted.shift().div.style.backgroundColor = 'unset';
+    while (this.highlightArr.length) {
+        this.highlightArr.shift().div.style.backgroundColor = 'unset';
     }
     for (var i=0; i<children.length; i++) {
         children[i].div.style.backgroundColor = '#00708333';
@@ -226,21 +226,21 @@ TPaint.prototype.highlight = function(children, fromNodes) {
     for (var i=0; i<fromNodes.length; i++) {
         fromNodes[i].div.style.backgroundColor = '#00708366';
     }
-    this.highlighted = children.concat(fromNodes);
+    this.highlightArr = children.concat(fromNodes);
 }
 
 TPaint.prototype.highlightNothing = function() {
     this.highlight([], []);
 }
 
-TPaint.prototype.drawLine = function(el, x1, y1, x2, y2) {
-    var p = x1 - x2;
-    var q = y1 - y2;
-    var length = Math.sqrt(p*p + q*q);
+TPaint.prototype.drawLine = function(elem, x1, y1, x2, y2) {
+    var xDiff = x1 - x2;
+    var yDiff = y1 - y2;
+    var length = Math.sqrt(xDiff*xDiff + yDiff*yDiff);
     var s_x = (x1 + x2) / 2
     var x = s_x - length / 2;
     var y = (y1 + y2) / 2;
-    var angle = Math.PI - Math.atan2(-q, p);
+    var angle = Math.PI - Math.atan2(-yDiff, xDiff);
     var line = document.createElement("div");
     var styles = 'border: 1px solid #678; '
                + 'width: ' + length + 'px; '
@@ -253,7 +253,7 @@ TPaint.prototype.drawLine = function(el, x1, y1, x2, y2) {
                + 'top: ' + y + 'px; '
                + 'left: ' + x + 'px; ';
     line.setAttribute('style', styles);  
-    el.appendChild(line);
+    elem.appendChild(line);
     return line;
 }
 
@@ -271,11 +271,9 @@ function Symbols(str) {
     str = str.replace('<>', '◇');
     str = str.replace(/\(E([s-z])\)/, '∃$1'); 
     str = str.replace(/(?:^|\W)\(([s-z])\)/, '∀$1'); 
-    str = str.replace(/\\exists[\{ ]?\}?/g, '∃');
     str = str.replace(/(\\vee|\\lor)[\{ ]?\}?/g, '∨');
     str = str.replace(/(\\to|\\rightarrow)[\{ ]?\}?/g, '→');
     str = str.replace(/\\[Bb]ox[\{ ]?\}?/g, '□');
-    str = str.replace(/\\forall[\{ ]?\}?/g, '∀');
     str = str.replace(/(\\neg|\\lnot)[\{ ]?\}?/g, '¬');
     str = str.replace(/(\\wedge|\\land)[\{ ]?\}?/g, '∧');
     str = str.replace(/\\leftrightarrow[\{ ]?\}?/g, '↔');
@@ -305,8 +303,8 @@ function updateInput() {
     Toggle();
 }
 
-document.querySelectorAll('.symbutton').forEach(function(el) {
-    el.onclick = function(e) {
+document.querySelectorAll('.symbutton').forEach(function(elem) {
+    elem.onclick = function(e) {
         var field = document.forms[0].flaField;
         var cmd = this.innerHTML;
         field.insertAtCaret(cmd);
@@ -323,14 +321,14 @@ document.forms[0].flaField.insertAtCaret = function(str) {
    }
    else if (this.selectionStart || this.selectionStart === 0) {
       
-      var StartPosition = this.selectionStart;
-      var EndPosition = this.selectionEnd;
+      var startPos = this.selectionStart;
+      var endPos = this.selectionEnd;
       var TopScroll = this.TopScroll;
-      var val = this.value; 
-      this.value = val.substring(0, StartPosition)+str+val.substring(EndPosition,val.length);
+      var valu = this.value; 
+      this.value = valu.substring(0, startPos)+str+valu.substring(endPos,valu.length);
       this.focus();
-      this.selectionStart = StartPosition + str.length;
-      this.selectionEnd = StartPosition + str.length;
+      this.selectionStart = startPos + str.length;
+      this.selectionEnd = startPos + str.length;
       this.TopScroll = TopScroll;
    } 
    else {
@@ -340,13 +338,13 @@ document.forms[0].flaField.insertAtCaret = function(str) {
 }
 
 var prover = null;
-function Proof_Start() {
+function beginProof() {
     var input = document.forms[0].flaField.value;
     var parser = new Parser();
     try {
-        var Input_Parsed = parser.parseInput(input);
-        var premises = Input_Parsed[0];
-        var conclusion = Input_Parsed[1];
+        var parsedInput = parser.parseInput(input);
+        var premises = parsedInput[0];
+        var conclusion = parsedInput[1];
         var initFormulas = premises.concat([conclusion.negate()]);
     }
     catch (e) {
@@ -359,26 +357,26 @@ function Proof_Start() {
     document.getElementById("status").style.display = "block";
     document.getElementById("rootAnchor").style.display = "none";
     document.getElementById("status").innerHTML = "<div id='working'>working</div>";
-    var Access_Constraints = [];
+    var accessConstraintsArr = [];
     if (parser.isModal) {
-        document.querySelectorAll('.accCheckbox').forEach(function(el) {
-            if (el.checked) {
-                Access_Constraints.push(el.id);
+        document.querySelectorAll('.accCheckbox').forEach(function(elem) {
+            if (elem.checked) {
+                accessConstraintsArr.push(elem.id);
             }
         });
     }
-    prover = new Prover(initFormulas, parser, Access_Constraints);
+    prover = new Prover(initFormulas, parser, accessConstraintsArr);
     prover.onfinished = function(treeClosed) {
         var Span_conclusion = "<span class='formula'>"+conclusion+"</span>";
         if (initFormulas.length == 1) {
-            var summary = Span_conclusion + " is " + (treeClosed ? "a tautology." : "not a tautology.");
+            var summ = Span_conclusion + " is " + (treeClosed ? "a tautology." : "not a tautology.");
         }
         else {
-            var summary = premises.map(function(f){
+            var summ = premises.map(function(f){
                 return "<span class='formula'>"+f+"</span>";
             }).join(', ') + (treeClosed ? " entails " : " does not entail ") + Span_conclusion + ".";
         }
-        document.getElementById("status").innerHTML = summary;
+        document.getElementById("status").innerHTML = summ;
         var sTree = new STree(this.tree, parser); 
         if (!treeClosed) {
             if (this.counterModel) {
@@ -401,8 +399,8 @@ onload = function(e) {
     updateInput();
     document.forms[0].flaField.onkeyup = updateInput;
     document.forms[0].onsubmit = function(e) {
-        setHash();
-        Proof_Start();
+        hashSet();
+        beginProof();
         return false;
     }
     if (location.hash.length > 0) {
@@ -410,18 +408,18 @@ onload = function(e) {
     }
 }
 
-var Hash_Script = false;
-function setHash() {
-    Hash_Script = true;
+var hashScript = false;
+function hashSet() {
+    hashScript = true;
     var hash = document.forms[0].flaField.value;
-    var Access_Constraints = [];
-    document.querySelectorAll('.accCheckbox').forEach(function(el) {
-        if (el.checked) {
-            Access_Constraints.push(el.id);
+    var accessConstraintsArr = [];
+    document.querySelectorAll('.accCheckbox').forEach(function(elem) {
+        if (elem.checked) {
+            accessConstraintsArr.push(elem.id);
         }
     });
-    if (Access_Constraints.length > 0) {
-        hash += '||'+Access_Constraints.join('|');
+    if (accessConstraintsArr.length > 0) {
+        hash += '||'+accessConstraintsArr.join('|');
     }
     location.hash = hash;
 }
@@ -430,8 +428,8 @@ window.onChange_Hash = Change_Hash;
 
 function Change_Hash() {
     if (prover) prover.stop();
-    if (Hash_Script) {
-        Hash_Script = false;
+    if (hashScript) {
+        hashScript = false;
         return;
     }
     if (location.hash.length == 0) {
@@ -443,13 +441,13 @@ function Change_Hash() {
     }
     else {
         var hash = decodeURIComponent(location.hash.substr(1).replace(/\+/g, '%20'));
-        var hashparts = hash.split('||');
-        document.forms[0].flaField.value = hashparts[0];
-        var Access_Constraints = hashparts[1] ? hashparts[1].split('|') : [];
-        document.querySelectorAll('.accCheckbox').forEach(function(el) {
-            el.checked = Access_Constraints.includes(el.id); 
+        var partHash = hash.split('||');
+        document.forms[0].flaField.value = partHash[0];
+        var accessConstraintsArr = partHash[1] ? partHash[1].split('|') : [];
+        document.querySelectorAll('.accCheckbox').forEach(function(elem) {
+            elem.checked = accessConstraintsArr.includes(elem.id); 
         });
         Toggle();
-        Proof_Start();
+        beginProof();
     }
 }
