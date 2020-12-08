@@ -23,7 +23,7 @@ a {
   font-size: 1em;
   color: rgb(0, 0, 0);
 }
-.iconButton {
+.symbutton {
   text-align: center;
   display: inline-block;
   width: 25px;
@@ -52,7 +52,7 @@ a {
   color: rgb(248, 233, 233);
 }
 
-#proveButton {
+#selectBtn {
   width: 100px;
   font-size: 1em;
   padding: 5px;
@@ -78,7 +78,7 @@ a {
   border-radius: 15px;
 }
 
-#rootAnchor {
+#treeVal {
   position: absolute;
   left: 0;
   right: 0;
