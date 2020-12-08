@@ -1,24 +1,24 @@
-function ModelFinder(initFormulas, parser, accessibilityConstraints, s5){
+function ModelFinder(initFormulas, parser, accessibilityConstraints, sFive){
     this.parser = parser;
-    this.s5 = s5;
+    this.sFive = sFive;
     
-    if (s5) {
+    if (sFive) {
         accessibilityConstraints = [];
         initFormulas = initFormulas.map(function(f) {
             return parser.stripAccessibilityClauses(f);
         });
     }
     this.predicates = parser.getSymbols('predicate');
-    if (s5) this.predicates.remove(parser.R);
+    if (sFive) this.predicates.remove(parser.R);
     this.constants = parser.getSymbols('individual constant');
     this.funcSymbols = parser.getSymbols('function symbol');
-    if (parser.isModal) {
+    if (parser.isMod) {
         this.constants.unshift(parser.w);
     }
     initFormulas = initFormulas.concat(accessibilityConstraints || []);
     this.clauses = this.getClauses(initFormulas);
     var IndividualsNum = 1;
-    var WorldsNum = this.parser.isModal ? 1 : 0;
+    var WorldsNum = this.parser.isMod ? 1 : 0;
     this.model = new Model(this, IndividualsNum, WorldsNum);
     
     this.alternativeModels = [];
@@ -164,7 +164,7 @@ function Model(modelfinder, IndividualsNum, WorldsNum) {
     this.parser = modelfinder.parser;
     this.domain = Array.getArrayOfNumbers(IndividualsNum);
     this.worlds = Array.getArrayOfNumbers(WorldsNum);
-    this.isModal = WorldsNum > 0;
+    this.isMod = WorldsNum > 0;
     this.interpretation = {}; 
 
     this.clauses = this.getDomaiclauseNs();
@@ -187,7 +187,7 @@ Model.prototype.initTermValues = function(literal) {
         if (termIsOld[termStr]) continue;
         termIsOld[termStr] = true;
         var maxValue = this.domain.length - 1;
-        if (this.parser.isModal) {
+        if (this.parser.isMod) {
             if (i == atom.terms.length-1 || atom.predicate == this.parser.R) {
                 maxValue = this.worlds.length - 1;
             }
@@ -325,7 +325,7 @@ Model.prototype.getVariableAssignments = function(variables) {
     res.push(tuple.copy());
     var maxValues = [];
     for (var i=0; i<variables.length; i++) {
-        maxValues.push(this.parser.expressionType[variables[i]] == 'variable' ?
+        maxValues.push(this.parser.expType[variables[i]] == 'variable' ?
                        this.domain.length-1 : this.worlds.length-1);
     }
     while (Model.iterateTuple(tuple, maxValues)) { 
@@ -383,7 +383,7 @@ Model.prototype.copy = function() {
     nmodel.parser = this.parser;
     nmodel.domain = this.domain;
     nmodel.worlds = this.worlds;
-    nmodel.isModal = this.isModal;
+    nmodel.isMod = this.isMod;
     nmodel.interpretation = this.interpretation;
     nmodel.termValues = this.termValues;
     nmodel.clauses = this.clauses.copy();
@@ -401,7 +401,7 @@ Model.iterateTuple = function(tuple, maxValues) {
 }
 Model.prototype.toHTML = function() {
     var str = "<table>";
-    if (this.parser.isModal) {
+    if (this.parser.isMod) {
         function w(num) {
             return 'w<sub>'+num+'</sub>';
         }
@@ -442,7 +442,7 @@ Model.prototype.toHTML = function() {
         }
         str += "<tr><td align='right' class='formula'>" + sym + ": </td><td align='left'>" + val + "</td></tr>\n";
     }
-    var isModal = this.parser.isModal;
+    var isMod = this.parser.isMod;
     var R = this.parser.R;
     for (var i=0; i<this.modelfinder.predicates.length; i++) {
         var sym = this.modelfinder.predicates[i];
@@ -452,12 +452,12 @@ Model.prototype.toHTML = function() {
             val = ext;
         }
         else if (ext.length > 0 && !ext[0].isArray) {
-            if (isModal) ext = ext.map(function(n){return w(n)});
+            if (isMod) ext = ext.map(function(n){return w(n)});
             val = '{ '+ext.join(',')+' }';
         }
         else {
             val = '{ '+ext.map(function(tuple) {
-                if (isModal) {
+                if (isMod) {
                     tuple[tuple.length-1] = w(tuple[tuple.length-1]);
                     if (sym == R) tuple[0] = w(tuple[0]);
                 }
