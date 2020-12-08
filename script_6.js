@@ -82,7 +82,7 @@ TPaint.prototype.nodeMake = function (node) {
   node.spanFormula = document.createElement('span');
   node.spanFormula.className = 'formula ' + node.container.formulaClass;
   node.spanFormula.innerHTML = node.formula.string;
-  if (node.closedEnd) node.spanFormula.innerHTML += '<br><b>x</b>';
+  if (node.closedEnd) node.spanFormula.innerHTML += '<br><br><b>-</b>';
   div.appendChild(node.spanFormula);
 
   if (this.isMod) {
