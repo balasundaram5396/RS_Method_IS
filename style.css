@@ -14,26 +14,26 @@ a {
 }
 
 .button {
-  background: #5c76ca;
+  background: #8096d6;
   color: #000;
-  border: 1px solid #4d72b6;
+  border: 1px solid #7c9ddb;
   border-radius: 10%;
 }
 .formula {
   font-size: 1em;
   color: rgb(0, 0, 0);
 }
-.iconButton {
+.symbutton {
   text-align: center;
   display: inline-block;
   width: 25px;
-  height: 25px;
+  height: 20px;
   color: #333 !important;
   padding: 0px 3px 10px 3px;
 }
 
 #inputForm {
-  background: rgb(213, 225, 231);
+  background: rgb(218, 232, 240);
   color: #000;
   margin: 20px 10;
   padding: 20px;
@@ -42,7 +42,7 @@ a {
 #symbolButtonRow {
   margin: 0 0 5px 3px;
   padding: 0px 3px 10px 3px;
-  text-align: center;
+  text-align: left;
 }
 #symbolButtons {
   display: inline-block;
@@ -52,14 +52,15 @@ a {
   color: rgb(248, 233, 233);
 }
 
-#proveButton {
+#selectBtn {
   width: 100px;
   font-size: 1em;
   padding: 5px;
 }
-
-#statusStop#statusStop.button:hover {
-  background-color: red;
+#selectBtnClear {
+  width: 100px;
+  font-size: 1em;
+  padding: 5px;
 }
 
 #status {
@@ -67,18 +68,8 @@ a {
   text-align: center;
   display: block;
 }
-#working {
-  display: block;
-  margin: auto;
-  width: 200px;
-  padding: 5px;
-  color: #456;
-  background: #97c1f866;
-  border: 1px solid #478ccc;
-  border-radius: 15px;
-}
 
-#rootAnchor {
+#treeVal {
   position: absolute;
   left: 0;
   right: 0;

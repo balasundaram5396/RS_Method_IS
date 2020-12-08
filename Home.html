@@ -35,7 +35,7 @@
       >
         <div
           id="val"
-          style="text-align: center; padding-left: 0%; color: white"
+          style="text-align: center; padding-left: 30%; color: white"
         >
           <h1>ITCS 6150 INTELLIGENT SYSTEMS PROJECT: RS METHOD</h1>
         </div>
@@ -73,15 +73,15 @@
           <div id="symbolButtonRow">
             <div id="symbolButtons">
               IMPLIES
-              <div class="iconButton button formula">→</div>
-              &ensp; DOUBLE IMPLIES
-              <div class="iconButton button formula">↔</div>
-              &ensp; NEGATION:
-              <div class="iconButton button formula">¬</div>
-              &ensp; AND
-              <div class="iconButton button formula">∧</div>
-              &ensp; OR
-              <div class="iconButton button formula">∨</div>
+              <div class="symbutton button formula">→</div>
+              &ensp;&ensp;&ensp; DOUBLE IMPLIES
+              <div class="symbutton button formula">↔</div>
+              &ensp; &ensp;&ensp;NEGATION
+              <div class="symbutton button formula">¬</div>
+              &ensp;&ensp;&ensp; AND
+              <div class="symbutton button formula">∧</div>
+              &ensp;&ensp;&ensp; OR
+              <div class="symbutton button formula">∨</div>
             </div>
           </div>
           <div id="proveRow">
@@ -96,29 +96,46 @@
               <button
                 type="submit"
                 value="Submit"
-                id="proveButton"
+                id="selectBtn"
                 class="btn btn-success"
               >
                 Check
+              </button>
+              <button
+                class="btn btn-danger"
+                onclick="document.location='Home.html'"
+                id="selectBtnClear"
+              >
+                Clear
               </button>
             </div>
           </div>
         </form>
       </div>
       <br />
-      <div id="backtostartpage"></div>
-      <div class="container" style="text-align: center"><b>RESULT:</b></div>
+      <br /><br />
+      <div id="homeLink"></div>
+      <div class="container" style="text-align: center">
+        <b>RESULT</b>
+        <hr />
+      </div>
+
       <div id="status"></div>
-      <div class="container" style="text-align: center"><b>TRUTH TREE:</b></div>
+      <br /><br />
+      <div class="container" style="text-align: center">
+        <b>TRUTH TREE</b>
+        <hr />
+      </div>
+
       <div id="model"></div>
-      <div id="rootAnchor"></div>
-      <div id="intro"></div>
-      <script type="text/javascript" src="script_1.js"></script>
-      <script type="text/javascript" src="script_2.js"></script>
-      <script type="text/javascript" src="script_3.js"></script>
-      <script type="text/javascript" src="script_4.js"></script>
-      <script type="text/javascript" src="script_5.js"></script>
-      <script type="text/javascript" src="script_6.js"></script>
+      <div id="treeVal"></div>
+      <div id="layout"></div>
     </div>
+    <script type="text/javascript" src="script_1.js"></script>
+    <script type="text/javascript" src="script_2.js"></script>
+    <script type="text/javascript" src="script_3.js"></script>
+    <script type="text/javascript" src="script_4.js"></script>
+    <script type="text/javascript" src="script_5.js"></script>
+    <script type="text/javascript" src="script_6.js"></script>
   </body>
 </html>
