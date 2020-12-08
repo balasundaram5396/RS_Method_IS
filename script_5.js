@@ -1,19 +1,19 @@
-function STree(fvTree, parser) {
+function STree(treeFV, parser) {
     this.nodes = [];
-    this.isClosed = (fvTree.openBranches.length == 0);
-    this.initFormulas = fvTree.prover.initFormulas;
-    this.initFormulasNonModal = fvTree.prover.initFormulasNonModal;
-    this.initFormulasNormalized = fvTree.prover.initFormulasNormalized;
-    this.fvTree = fvTree;
+    this.close = (treeFV.openBranches.length == 0);
+    this.initFormulas = treeFV.prover.initFormulas;
+    this.initFormulasNonModal = treeFV.prover.initFormulasNonModal;
+    this.initFormulasNormalized = treeFV.prover.initFormulasNormalized;
+    this.treeFV = treeFV;
     this.parser = parser; 
-    this.parserFV = fvTree.parser; 
+    this.parserFV = treeFV.parser; 
     this.markEndNodesClosed();
     this.changeNodes();
     this.removeUnusedNodes();
     this.replaceFreeVariablesAndSkolemTerms();
 }
 
-STree.prototype.transferNode = function(node, par) {
+STree.prototype.transferNode = function(node, parent) {
     var formula_node = node.formula;
     for (var i=0; i<node.fromNodes.length; i++) {
         if (node.fromNodes[i].formula.type == 'doublenegation') {
@@ -21,48 +21,48 @@ STree.prototype.transferNode = function(node, par) {
             node.fromNodes[i] = node.fromNodes[i].doubleNegate;
         }
     }
-    if (par.doubleNegate) par = par.doubleNegate;
+    if (parent.doubleNegate) parent = parent.doubleNegate;
         
     switch (node.fromRule) {
 
     case Prover.beta: {
         var from = node.fromNodes[0];
-        var a1 = from.formula.beta(1);
-        var a2 = from.formula.beta(2);
-        if (!formula_node.equals(a1.normalize())) node.formula = a2;
-        else if (!formula_node.equals(a2.normalize())) node.formula = a1;
+        var b1 = from.formula.beta(1);
+        var b2 = from.formula.beta(2);
+        if (!formula_node.equals(b1.normalize())) node.formula = b2;
+        else if (!formula_node.equals(b2.normalize())) node.formula = b1;
         else {
-            node.formula = (par.children && par.children.length) ? a2 : a1;
+            node.formula = (parent.children && parent.children.length) ? b2 : b1;
         }
         if (from.formula.operator == '↔' ||
             (from.formula.operator == '¬' && from.formula.sub.operator == '↔')) {
             node.biConditionFull = true;
             node.used = false;
         }
-        this.appendChild(par, node);
-        if (par.children.length == 2 && node.formula == a1) {
-            par.children.reverse();
+        this.appendChild(parent, node);
+        if (parent.children.length == 2 && node.formula == b1) {
+            parent.children.reverse();
         }
         return node;
     }
 
     case Prover.alpha : {
         var from = node.fromNodes[0];
-        var a1 = from.formula.alpha(1);
-        var a2 = from.formula.alpha(2);
+        var b1 = from.formula.alpha(1);
+        var b2 = from.formula.alpha(2);
         if (from.biConditionFull) {
             node.fromNodes = from.fromNodes;
             node.expansionStep = from.expansionStep;
         }
-        if (!formula_node.equals(a1.normalize())) node.formula = a2;
-        else if (!formula_node.equals(a2.normalize())) node.formula = a1;
+        if (!formula_node.equals(b1.normalize())) node.formula = b2;
+        else if (!formula_node.equals(b2.normalize())) node.formula = b1;
         else {
-            node.formula = (par.fromNodes[0] && par.fromNodes[0] == from) ? a2 : a1;
+            node.formula = (parent.fromNodes[0] && parent.fromNodes[0] == from) ? b2 : b1;
         }
-        this.appendChild(par, node);
-        if (par.fromNodes[0] && par.fromNodes[0] == from && node.formula == a1) {
-            this.reverse(par, node);
-            return par;
+        this.appendChild(parent, node);
+        if (parent.fromNodes[0] && parent.fromNodes[0] == from && node.formula == b1) {
+            this.reverse(parent, node);
+            return parent;
         }
         else return node;
         
@@ -73,67 +73,67 @@ STree.prototype.transferNode = function(node, par) {
         var from = node.fromNodes[0];
         if (from.formula.sub) {
             var newFla = from.formula.sub.matrix.sub2.negate();
-            var boundVar = from.formula.sub.variable;
+            var varBound = from.formula.sub.variable;
         }
         else { 
             var newFla = from.formula.matrix.sub2;
-            var boundVar = from.formula.variable;
+            var varBound = from.formula.variable;
         }
-        node.formula = newFla.substitute(boundVar, node.instanceTerm);
-        this.appendChild(par, node);
+        node.formula = newFla.substitute(varBound, node.instanceTerm);
+        this.appendChild(parent, node);
         return node;
     }
 
     case Prover.gamma: case Prover.delta: {
         var from = node.fromNodes[0];
         var matrix = from.formula.matrix || from.formula.sub.matrix;
-        if (this.fvTree.prover.s5 && matrix.sub1 &&
+        if (this.treeFV.prover.s5 && matrix.sub1 &&
             matrix.sub1.predicate == this.parserFV.R) {
             var newFla = from.formula.sub ? matrix.sub2.negate() : matrix.sub2;
         }
         else {
             var newFla = from.formula.sub ? matrix.negate() : matrix;
         }
-        var boundVar = from.formula.sub ? from.formula.sub.variable : from.formula.variable;
+        var varBound = from.formula.sub ? from.formula.sub.variable : from.formula.variable;
         if (node.instanceTerm) {
-            node.formula = newFla.substitute(boundVar, node.instanceTerm);
+            node.formula = newFla.substitute(varBound, node.instanceTerm);
         }
         else {
             node.formula = newFla;
         }
-        this.appendChild(par, node);
+        this.appendChild(parent, node);
         return node;
     }
 
     case Prover.modalDelta: 
         var from = node.fromNodes[0];
         if (node.formula.predicate == this.parserFV.R) {
-            this.appendChild(par, node);
+            this.appendChild(parent, node);
         }
         else {
             if (from.formula.sub) { 
                 var newFla = from.formula.sub.matrix.sub2.negate();
-                var boundVar = from.formula.sub.variable;
+                var varBound = from.formula.sub.variable;
             }
             else {
                 var newFla = from.formula.matrix.sub2;
-                var boundVar = from.formula.variable;
+                var varBound = from.formula.variable;
             }
-            node.formula = newFla.substitute(boundVar, node.instanceTerm);
-            this.appendChild(par, node);
+            node.formula = newFla.substitute(varBound, node.instanceTerm);
+            this.appendChild(parent, node);
         }
         return node;
         
     default: {
-        this.appendChild(par, node);
+        this.appendChild(parent, node);
         return node;
     }
     }
 }
 
 STree.prototype.markEndNodesClosed = function() {
-    for (var i=0; i<this.fvTree.closedBranches.length; i++) {
-        var branch = this.fvTree.closedBranches[i]; 
+    for (var i=0; i<this.treeFV.closedBranches.length; i++) {
+        var branch = this.treeFV.closedBranches[i]; 
         branch.nodes[branch.nodes.length-1].closedEnd = true;
     }
 }
@@ -141,26 +141,26 @@ STree.prototype.markEndNodesClosed = function() {
 STree.prototype.changeNodes = function() {
 
     this.addInitNodes();
-    var branches = this.fvTree.closedBranches.concat(this.fvTree.openBranches);
+    var branches = this.treeFV.closedBranches.concat(this.treeFV.openBranches);
     for (var b=0; b<branches.length; b++) {
-        var par;
+        var parent;
         for (var n=0; n<branches[b].nodes.length; n++) {
             var node = branches[b].nodes[n];
             if (node.isSenNode) {
-                par = node.swappedWith || node;
+                parent = node.swappedWith || node;
                 continue;
             }
-            par = this.transferNode(node, par);
+            parent = this.transferNode(node, parent);
         }
     }
 }
 
 STree.prototype.addInitNodes = function() {
-    var branch = this.fvTree.closedBranches.length > 0 ?
-        this.fvTree.closedBranches[0] : this.fvTree.openBranches[0];
+    var branch = this.treeFV.closedBranches.length > 0 ?
+        this.treeFV.closedBranches[0] : this.treeFV.openBranches[0];
     
     for (var i=0; i<this.initFormulasNonModal.length; i++) {
-        var node = this.makeNode(branch.nodes[i]);
+        var node = this.nodeMake(branch.nodes[i]);
         node.formula = this.initFormulasNonModal[i];
         node.used = true; 
         if (i==0) this.nodes.push(node);
@@ -171,7 +171,7 @@ STree.prototype.addInitNodes = function() {
 STree.prototype.expandDoubleNegation = function(node) {
     if (node.doubleNegate) return;
     var newNode = new Node(node.formula.sub.sub, null, [node]);
-    this.makeNode(newNode);
+    this.nodeMake(newNode);
     node.doubleNegate = newNode;
     var dnePar = node;
     if (node.children[0] && node.children[0].fromNodes[0] == node.fromNodes[0]) {
@@ -265,7 +265,7 @@ STree.prototype.replaceFreeVariablesAndSkolemTerms = function() {
 }
 
 STree.prototype.removeUnusedNodes = function() {
-    if (!this.isClosed) return;
+    if (!this.close) return;
     for (var i=0; i<this.nodes.length; i++) {
         var node = this.nodes[i];
         if (node.used) {
@@ -296,7 +296,7 @@ STree.prototype.createModel = function() {
     }
 }
 
-STree.prototype.makeNode = function(node) {
+STree.prototype.nodeMake = function(node) {
     node.parent = null;
     node.children = [];
     node.isSenNode = true;
@@ -305,7 +305,7 @@ STree.prototype.makeNode = function(node) {
 
 STree.prototype.appendChild = function(oldNode, newNode) {
    if (!newNode.isSenNode) {
-       newNode = this.makeNode(newNode);
+       newNode = this.nodeMake(newNode);
    }
    newNode.parent = oldNode;
    oldNode.children.push(newNode);
@@ -365,21 +365,21 @@ STree.prototype.substitute = function(oldTerm, newTerm) {
     }
 }
 
-STree.prototype.reverse = function(node1, node2) {
-   node2.parent = node1.parent;
-   node1.parent = node2;
-   if (node2.parent.children[0] == node1) node2.parent.children[0] = node2;
-   else node2.parent.children[1] = node2;
-   node1.children = node2.children;
-   node2.children = [node1];
-   if (node1.children[0]) node1.children[0].parent = node1;
-   if (node1.children[1]) node1.children[1].parent = node1;
-   if (node2.closedEnd) {
-      node2.closedEnd = false;
-      node1.closedEnd = true;
+STree.prototype.reverse = function(n1, n2) {
+   n2.parent = n1.parent;
+   n1.parent = n2;
+   if (n2.parent.children[0] == n1) n2.parent.children[0] = n2;
+   else n2.parent.children[1] = n2;
+   n1.children = n2.children;
+   n2.children = [n1];
+   if (n1.children[0]) n1.children[0].parent = n1;
+   if (n1.children[1]) n1.children[1].parent = n1;
+   if (n2.closedEnd) {
+      n2.closedEnd = false;
+      n1.closedEnd = true;
    }
-   node2.swappedWith = node1;
-   node1.swappedWith = node2;
+   n2.swappedWith = n1;
+   n1.swappedWith = n2;
 }
 
 STree.prototype.getExpansion = function(node) {
@@ -387,10 +387,10 @@ STree.prototype.getExpansion = function(node) {
     var res = [node];
 
     if (!node.expansionStep) return res; 
-    var par = node.parent;
-    while (par && par.expansionStep == node.expansionStep) {
-        res.unshift(par);
-        par = par.parent;
+    var parent = node.parent;
+    while (parent && parent.expansionStep == node.expansionStep) {
+        res.unshift(parent);
+        parent = parent.parent;
     }
     
     var ch = node.children[0];
@@ -399,9 +399,9 @@ STree.prototype.getExpansion = function(node) {
         ch = ch.children[0];
     }
     
-    if (par) {
-        for (var i=0; i<par.children.length; i++) {
-            var sibling = par.children[i];
+    if (parent) {
+        for (var i=0; i<parent.children.length; i++) {
+            var sibling = parent.children[i];
             while (sibling && sibling.expansionStep == node.expansionStep) {
                 if (!res.includes(sibling)) res.push(sibling);
                 sibling = sibling.children[0];
@@ -421,7 +421,7 @@ STree.prototype.getCountVal = function() {
     }
     if (!endNode) return null;
     
-    var model = new Model(this.fvTree.prover.modelfinder, 0, 0);
+    var model = new Model(this.treeFV.prover.modelfinder, 0, 0);
    
     var node = endNode;
     if (this.parser.isModal) {
