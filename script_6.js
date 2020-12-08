@@ -310,13 +310,10 @@ function Symbols(str) {
   str = str.replace('<->', '↔');
   str = str.replace('~', '¬');
   str = str.replace('[]', '□');
-  str = str.replace(/\(A([s-z])\)/, '∀$1');
   str = str.replace('^', '∧');
   str = str.replace('->', '→');
   str = str.replace(' v ', ' ∨ ');
   str = str.replace('<>', '◇');
-  str = str.replace(/\(E([s-z])\)/, '∃$1');
-  str = str.replace(/(?:^|\W)\(([s-z])\)/, '∀$1');
   str = str.replace(/(\\vee|\\lor)[\{ ]?\}?/g, '∨');
   str = str.replace(/(\\to|\\rightarrow)[\{ ]?\}?/g, '→');
   str = str.replace(/\\[Bb]ox[\{ ]?\}?/g, '□');
