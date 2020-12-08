@@ -42,14 +42,7 @@ Parser.prototype.getNewSymbol = function (items, expType, ar) {
 Parser.prototype.registerExpression = function (ex, exType, ar) {
   if (!this.expType[ex]) this.symbols.push(ex);
   else if (this.expType[ex] != exType) {
-    throw (
-      "do not use '" +
-      ex +
-      "' as both the " +
-      this.expType[ex] +
-      ' and ' +
-      exType
-    );
+    throw 'Invalid expression';
   }
   this.expType[ex] = exType;
   this.ats[ex] = ar;
