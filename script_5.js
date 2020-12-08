@@ -87,7 +87,7 @@ STree.prototype.transferNode = function(node, parent) {
     case Prover.gamma: case Prover.delta: {
         var from = node.fromNodes[0];
         var matrix = from.formula.matrix || from.formula.sub.matrix;
-        if (this.treeFV.prover.s5 && matrix.sub1 &&
+        if (this.treeFV.prover.sFive && matrix.sub1 &&
             matrix.sub1.predicate == this.parserFV.R) {
             var newFla = from.formula.sub ? matrix.sub2.negate() : matrix.sub2;
         }
@@ -424,7 +424,7 @@ STree.prototype.getCountVal = function() {
     var model = new Model(this.treeFV.prover.modelfinder, 0, 0);
    
     var node = endNode;
-    if (this.parser.isModal) {
+    if (this.parser.isMod) {
         model.worlds = [0];
         model.interpretation['w'] = 0;
     }
@@ -450,8 +450,8 @@ STree.prototype.getCountVal = function() {
             var term = terms[t];
             var rterm = model.reduceArguments(terms[t]).toString();
             if (rterm in model.interpretation) continue;
-            var domain = this.parserFV.expressionType[term] &&
-                this.parserFV.expressionType[term].indexOf('world') > -1 ? 
+            var domain = this.parserFV.expType[term] &&
+                this.parserFV.expType[term].indexOf('world') > -1 ? 
                 model.worlds : model.domain;
             domain.push(domain.length);
             model.interpretation[rterm] = domain.length-1;

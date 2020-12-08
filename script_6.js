@@ -6,7 +6,7 @@ function TPaint(sTree, treeVal) {
   this.nodeHiParentCSS = 'treeNodeHiParent';
   this.nodeHiChildCSS = 'treeNodeHiChild';
   this.tree = sTree;
-  this.isModal = sTree.parser.isModal;
+  this.isMod = sTree.parser.isMod;
   this.treeVal = treeVal;
   this.treeVal.innerHTML = '';
   this.minX = this.branchPadding / 2 - treeVal.offsetLeft;
@@ -85,7 +85,7 @@ TPaint.prototype.nodeMake = function (node) {
   if (node.closedEnd) node.spanFormula.innerHTML += '<br><b>x</b>';
   div.appendChild(node.spanFormula);
 
-  if (this.isModal) {
+  if (this.isMod) {
     var worldSpan = document.createElement('span');
     worldSpan.className = 'worldlabel';
     worldSpan.innerHTML = node.formula.world
@@ -150,7 +150,7 @@ TPaint.prototype.branchRepo = function (node) {
           parent.removeChild(parent.branchLines[i]);
         }
       }
-      var centre = this.isModal ? -8 : 0;
+      var centre = this.isMod ? -8 : 0;
       var line1 = this.drawLine(
         parent,
         centre,
@@ -310,13 +310,10 @@ function Symbols(str) {
   str = str.replace('<->', '↔');
   str = str.replace('~', '¬');
   str = str.replace('[]', '□');
-  str = str.replace(/\(A([s-z])\)/, '∀$1');
   str = str.replace('^', '∧');
   str = str.replace('->', '→');
   str = str.replace(' v ', ' ∨ ');
   str = str.replace('<>', '◇');
-  str = str.replace(/\(E([s-z])\)/, '∃$1');
-  str = str.replace(/(?:^|\W)\(([s-z])\)/, '∀$1');
   str = str.replace(/(\\vee|\\lor)[\{ ]?\}?/g, '∨');
   str = str.replace(/(\\to|\\rightarrow)[\{ ]?\}?/g, '→');
   str = str.replace(/\\[Bb]ox[\{ ]?\}?/g, '□');
@@ -401,7 +398,7 @@ function beginProof() {
   document.getElementById('status').innerHTML =
     "<div id='working'>working</div>";
   var accessConstraintsArr = [];
-  if (parser.isModal) {
+  if (parser.isMod) {
     document.querySelectorAll('.accCheckbox').forEach(function (elem) {
       if (elem.checked) {
         accessConstraintsArr.push(elem.id);
@@ -434,7 +431,7 @@ function beginProof() {
       }
       return;
     }
-    if (parser.isModal) {
+    if (parser.isMod) {
       sTree.createModel();
     }
     document.getElementById('treeVal').style.display = 'block';

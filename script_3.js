@@ -2,14 +2,14 @@ function Prover(initFormulas, parser, accessibilityConstraints) {
     this.initFormulas = initFormulas;
     this.parser = parser.copy();
     this.accessRules = [];
-    if (parser.isModal) {
+    if (parser.isMod) {
         this.initFormulasNonModal = [];
         for (var i = 0; i < initFormulas.length; i++) {
             this.initFormulasNonModal.push(this.parser.translateFromModal(initFormulas[i]));
         }
         if (accessibilityConstraints) {
-            this.s5 = accessibilityConstraints.includes('universality');
-            if (!this.s5) {
+            this.sFive = accessibilityConstraints.includes('universality');
+            if (!this.sFive) {
                 this.accessRules = accessibilityConstraints.map(function (s) {
                     return Prover[s];
                 });
@@ -45,7 +45,7 @@ function Prover(initFormulas, parser, accessibilityConstraints) {
             this.initFormulasNormalized,
             mfParser,
             accessibilityFormluas,
-            this.s5
+            this.sFive
         );
     }
     else {
@@ -160,7 +160,7 @@ Prover.modalGamma = function (branch, nodeList) {
     var node = nodeList[0];
     branch.todoList.push([Prover.modalGamma, node]);
 
-    if (branch.tree.prover.s5) {
+    if (branch.tree.prover.sFive) {
         return Prover.gamma(branch, nodeList, node.formula.matrix.sub2);
     }
     var wRx = node.formula.matrix.sub1.sub;
@@ -195,7 +195,7 @@ Prover.delta = function (branch, nodeList, matrix) {
     var fla = node.formula;
     var funcSymbol = branch.newFunctionSymbol(matrix);
     if (branch.freeVariables.length > 0) {
-        if (branch.tree.prover.s5) {
+        if (branch.tree.prover.sFive) {
             var skolemTerm = branch.freeVariables.filter(function (v) {
                 return v[0] == (matrix ? 'ζ' : 'ξ');
             });
@@ -220,7 +220,7 @@ Prover.delta.toString = function () { return 'delta' }
 
 Prover.modalDelta = function (branch, nodeList) {
     var node = nodeList[0];
-    if (branch.tree.prover.s5) {
+    if (branch.tree.prover.sFive) {
         return Prover.delta(branch, nodeList, node.formula.matrix.sub2);
     }
     var newWorldName = branch.newWorldName();
@@ -738,7 +738,7 @@ Branch.prototype.expandTodoList = function (node) {
         }
         this.todoList.insert([expansionRule, node], i);
     }
-    if (this.tree.parser.isModal) {
+    if (this.tree.parser.isMod) {
         if (this.nodes.length == 1) {
             this.addAccessibilityRuleApplications();
         }

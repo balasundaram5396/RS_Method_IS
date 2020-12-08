@@ -175,15 +175,6 @@ Formula.prototype.normalize = function () {
       var sub2 = this.sub2.normalize();
       return new BinaryFormula('∨', sub1, sub2);
     }
-    case '∀':
-    case '∃': {
-      return new QuantifiedFormula(
-        sym,
-        this.variable,
-        this.matrix.normalize(),
-        this.newVal
-      );
-    }
     case '□':
     case '◇': {
       return new ModalFormula(sym, this.sub.normalize());
@@ -218,16 +209,6 @@ Formula.prototype.normalize = function () {
           return new BinaryFormula('∧', sub1, sub2);
         }
 
-        case '∀':
-        case '∃': {
-          var sub = this.sub.matrix.negate().normalize();
-          return new QuantifiedFormula(
-            sym2 == '∀' ? '∃' : '∀',
-            this.sub.variable,
-            sub,
-            this.sub.newVal
-          );
-        }
         case '□':
         case '◇': {
           var sub = this.sub.sub.negate().normalize();

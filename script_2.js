@@ -1,8 +1,8 @@
 function Parser() {
-  this.expressionType = {};
+  this.expType = {};
   this.isProp = true;
   this.ats = {};
-  this.isModal = false;
+  this.isMod = false;
   this.symbols = [];
 }
 Parser.prototype.copy = function () {
@@ -10,48 +10,48 @@ Parser.prototype.copy = function () {
   np.symbols = this.symbols.copy();
   for (var j = 0; j < this.symbols.length; j++) {
     var sym = this.symbols[j];
-    np.expressionType[sym] = this.expressionType[sym];
+    np.expType[sym] = this.expType[sym];
     np.ats[sym] = this.ats[sym];
   }
   np.w = this.w;
   np.R = this.R;
-  np.isModal = this.isModal;
+  np.isMod = this.isMod;
   np.isProp = this.isProp;
   return np;
 };
 
-Parser.prototype.getSymbols = function (expressionType) {
+Parser.prototype.getSymbols = function (expType) {
   var res = [];
   for (var i = 0; i < this.symbols.length; i++) {
     var s = this.symbols[i];
-    if (this.expressionType[s].indexOf(expressionType) > -1) res.push(s);
+    if (this.expType[s].indexOf(expType) > -1) res.push(s);
   }
   return res;
 };
-Parser.prototype.getNewSymbol = function (items, expressionType, ar) {
+Parser.prototype.getNewSymbol = function (items, expType, ar) {
   var items = items.split('');
   for (var i = 0; i < items.length; i++) {
     var sym = items[i];
-    if (!this.expressionType[sym]) {
-      this.registerExpression(sym, expressionType, ar);
+    if (!this.expType[sym]) {
+      this.registerExpression(sym, expType, ar);
       return sym;
     }
     items.push(items[0] + (i + 2));
   }
 };
 Parser.prototype.registerExpression = function (ex, exType, ar) {
-  if (!this.expressionType[ex]) this.symbols.push(ex);
-  else if (this.expressionType[ex] != exType) {
+  if (!this.expType[ex]) this.symbols.push(ex);
+  else if (this.expType[ex] != exType) {
     throw (
       "do not use '" +
       ex +
       "' as both the " +
-      this.expressionType[ex] +
+      this.expType[ex] +
       ' and ' +
       exType
     );
   }
-  this.expressionType[ex] = exType;
+  this.expType[ex] = exType;
   this.ats[ex] = ar;
 };
 
@@ -75,7 +75,7 @@ Parser.prototype.getNewWorldVariable = function () {
 Parser.prototype.initModality = function () {
   for (var i = 0; i < this.symbols.length; i++) {
     var sym = this.symbols[i];
-    if (this.expressionType[sym].indexOf('predicate') > -1) {
+    if (this.expType[sym].indexOf('predicate') > -1) {
       this.ats[sym] += 1;
     }
   }
@@ -148,7 +148,7 @@ Parser.prototype.translateToModal = function (formula) {
     res.world = worldlabel;
   } else if (
     formula.quantifier &&
-    this.expressionType[formula.variable] == 'world variable'
+    this.expType[formula.variable] == 'world variable'
   ) {
     var prejacent = formula.matrix.sub2;
     var op = formula.quantifier == '∃' ? '◇' : '□';
@@ -210,7 +210,7 @@ Parser.prototype.skolemize = function (formula) {
       skterm.unshift(funcSymbol);
     } else
       skterm =
-        this.expressionType[formula.variable] == 'variable'
+        this.expType[formula.variable] == 'variable'
           ? this.getNewConstant()
           : this.getNewWorldName();
     var nmat = formula.matrix.substitute(formula.variable, skterm);
@@ -275,7 +275,7 @@ Parser.prototype.makeVariablesDistinct = function (formula) {
     var nvar = formula.variable;
     if (usedVariables.includes(formula.variable)) {
       nvar =
-        this.expressionType[nvar] == 'world variable'
+        this.expType[nvar] == 'world variable'
           ? this.getNewWorldVariable()
           : this.getNewVariable();
       nmat = nmat.substitute(formula.variable, nvar);
@@ -374,7 +374,7 @@ Parser.prototype.parseFormula = function (str) {
     var op = retst[1];
     var sub = this.parseFormula(str.substr(1), boundVars);
     if (op == '¬') return new NegatedFormula(sub);
-    this.isModal = true;
+    this.isMod = true;
     return new ModalFormula(op, sub);
   }
   retst = /^(∀|∃)([^\d\(\),%]\d*)/.exec(str);
@@ -424,7 +424,7 @@ Parser.prototype.parseAccessibilityFormula = function (str) {
   var matches = str.match(/[∀∃]./g);
   for (var i = 0; i < matches.length; i++) {
     var v = matches[i][1];
-    if (this.expressionType[v] && this.expressionType[v] != 'world variable') {
+    if (this.expType[v] && this.expType[v] != 'world variable') {
       var re = new RegExp(v, 'g');
       str = str.replace(re, this.getNewWorldVariable());
     } else {
