@@ -119,7 +119,7 @@ a {
 .treeNode .formula {
   margin: 0 3px;
 }
-.nodenumber {
+.countNode {
   text-align: left;
   color: rgb(109, 139, 27);
   width: 10em;

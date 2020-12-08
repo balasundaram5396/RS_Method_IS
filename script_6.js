@@ -1,8 +1,8 @@
 function TPaint(sTree, treeVal) {
-  this.paintInterval = 200;
+  this.paintInterval = 0;
   this.branchPadding =
-    window.innerWidth < 500 ? 0 : window.innerWidth < 800 ? 20 : 30;
-  this.branchHeight = 40;
+    window.innerWidth < 500 ? 0 : window.innerWidth < 750 ? 22 : 30;
+  this.branchHeight = 50;
   this.nodeHiParentCSS = 'treeNodeHiParent';
   this.nodeHiChildCSS = 'treeNodeHiChild';
   this.tree = sTree;
@@ -73,11 +73,11 @@ TPaint.prototype.nodeMake = function (node) {
   var div = document.createElement('div');
   div.className = 'treeNode';
 
-  var nodeNumberSpan = document.createElement('span');
-  node.nodeNumber = ++this.currNNum;
-  nodeNumberSpan.className = 'nodenumber';
-  nodeNumberSpan.innerHTML = node.nodeNumber + '.';
-  div.appendChild(nodeNumberSpan);
+  var countNodeSpan = document.createElement('span');
+  node.countNode = ++this.currNNum;
+  countNodeSpan.className = 'countNode';
+  countNodeSpan.innerHTML = '#' + node.countNode;
+  div.appendChild(countNodeSpan);
 
   node.spanFormula = document.createElement('span');
   node.spanFormula.className = 'formula ' + node.container.formulaClass;
@@ -97,7 +97,7 @@ TPaint.prototype.nodeMake = function (node) {
   var spanVal = document.createElement('span');
   spanVal.className = 'fromnumbers';
   var annot = node.fromNodes.map(function (n) {
-    return n.nodeNumber;
+    return n.countNode;
   });
   if (node.fromRule) {
     var fromRule = node.fromRule.toString().substr(0, 3);
@@ -252,10 +252,10 @@ TPaint.prototype.highlight = function (children, fromNodes) {
     this.highlightArr.shift().div.style.backgroundColor = 'unset';
   }
   for (var i = 0; i < children.length; i++) {
-    children[i].div.style.backgroundColor = '#00708333';
+    children[i].div.style.backgroundColor = '#ffff';
   }
   for (var i = 0; i < fromNodes.length; i++) {
-    fromNodes[i].div.style.backgroundColor = '#00708366';
+    fromNodes[i].div.style.backgroundColor = '#ffff';
   }
   this.highlightArr = children.concat(fromNodes);
 };
@@ -407,12 +407,11 @@ function beginProof() {
   }
   prover = new Prover(initFormulas, parser, accessConstraintsArr);
   prover.onfinished = function (treeClosed) {
-    var Span_conclusion = "<span class='formula'>" + conclusion + '</span>';
+    var Span_conclusion =
+      "<span class='formula'><h3>" + conclusion + '</h3></span><br>';
     if (initFormulas.length == 1) {
       var summ =
-        Span_conclusion +
-        ' is ' +
-        (treeClosed ? 'a tautology.' : 'not a tautology.');
+        Span_conclusion + (treeClosed ? '  TAUTOLOGY' : '  NOT A TAUTOLOGY');
     } else {
       var summ =
         premises
@@ -424,7 +423,8 @@ function beginProof() {
         Span_conclusion +
         '.';
     }
-    document.getElementById('status').innerHTML = summ;
+    document.getElementById('status').innerHTML =
+      '<b><h3>' + summ + '</h3></b>';
     var sTree = new STree(this.tree, parser);
     if (!treeClosed) {
       if (this.counterModel) {
