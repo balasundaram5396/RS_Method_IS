@@ -33,7 +33,10 @@
         style="background-color: #1a1b1d; border-radius: 0%; text-align: center"
         ;
       >
-        <div id="val" style="text-align: center; color: white">
+        <div
+          id="val"
+          style="text-align: center; padding-left: 0%; color: white"
+        >
           <h1>ITCS 6150 INTELLIGENT SYSTEMS PROJECT: RS METHOD</h1>
         </div>
       </nav>
@@ -70,21 +73,21 @@
           <div id="symbolButtonRow">
             <div id="symbolButtons">
               IMPLIES
-              <div class="symbutton button formula">→</div>
+              <div class="iconButton button formula">→</div>
               &ensp; DOUBLE IMPLIES
-              <div class="symbutton button formula">↔</div>
+              <div class="iconButton button formula">↔</div>
               &ensp; NEGATION:
-              <div class="symbutton button formula">¬</div>
+              <div class="iconButton button formula">¬</div>
               &ensp; AND
-              <div class="symbutton button formula">∧</div>
+              <div class="iconButton button formula">∧</div>
               &ensp; OR
-              <div class="symbutton button formula">∨</div>
+              <div class="iconButton button formula">∨</div>
             </div>
           </div>
           <div id="proveRow">
             <input
               type="text"
-              size="150"
+              size="200"
               name="flaField"
               id="flaField"
               class="formula"
@@ -103,24 +106,19 @@
         </form>
       </div>
       <br />
-      <div id="backtostartpage">
-        <a href="home.html"><br /><b>Click to go back to home page</b></a>
-      </div>
+      <div id="backtostartpage"></div>
+      <div class="container" style="text-align: center"><b>RESULT:</b></div>
       <div id="status"></div>
+      <div class="container" style="text-align: center"><b>TRUTH TREE:</b></div>
       <div id="model"></div>
       <div id="rootAnchor"></div>
+      <div id="intro"></div>
       <script type="text/javascript" src="script_1.js"></script>
       <script type="text/javascript" src="script_2.js"></script>
       <script type="text/javascript" src="script_3.js"></script>
       <script type="text/javascript" src="script_4.js"></script>
       <script type="text/javascript" src="script_5.js"></script>
       <script type="text/javascript" src="script_6.js"></script>
-
-      <div id="intro">
-        <script language="javascript">
-          function log(test) {}
-        </script>
-      </div>
     </div>
   </body>
 </html>
