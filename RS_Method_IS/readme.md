@@ -24,4 +24,4 @@ Result(Tautology or not) and Truth tree
 Javascript and HTML
 
 ### Tools used: 
-Visual Studio Code, Material UI.
+Visual Studio Code, Bootstrap.
